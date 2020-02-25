@@ -1,3 +1,3 @@
 # TestingSystem
 
-Wow, they've really done testing system
+Wow, they haven't really done testing system
