@@ -5,26 +5,42 @@
 			<v-toolbar-title>NROS</v-toolbar-title>
 			<v-spacer></v-spacer>
 
-			<v-menu offset-y close-on-click>
+			<v-menu absolute offset-y close-on-click transition="scale-transition">
 				<template v-slot:activator="{ on }">
-					<v-btn flat color="grey" @click.stop="userMenuExpanded = !userMenuExpanded" dark v-on="on"></v-btn>
-					<v-icon left>{{ changeArrowOnExpandUserMenu }}</v-icon>
-					<span>User name</span>
+					<v-btn text @click.stop="notifocationsListExpanded = !notifocationsListExpanded" dark v-on="on">
+						<v-badge overlap color="green" :content="notificationBadgeNum">
+							<v-icon>mdi-bell </v-icon>
+						</v-badge>
+					</v-btn>
 				</template>
 
 				<v-list>
-					<v-list-item link v-for="(item, index) in items" :key="index" router :to="item.link">
-						<v-list-item-title>{{ item.title }}</v-list-item-title>
+					<v-list-item link dense v-for="(userMenuItem, index) in notificationItems" :key="index" router :to="userMenuItem.link">
+						<v-list-item-title>{{ userMenuItem.title }}</v-list-item-title>
 					</v-list-item>
 				</v-list>
 			</v-menu>
 
-			<v-btn icon>
-				<v-icon>mdi-magnify</v-icon>
-			</v-btn>
+			<v-menu offset-y close-on-click>
+				<template v-slot:activator="{ on }">
+					<v-btn text color="red" @click.stop="userMenuExpanded = !userMenuExpanded" dark v-on="on">
+						User name
+						<v-icon right>{{ changeArrowOnExpandUserMenu }}</v-icon>
+					</v-btn>
+				</template>
+
+				<v-list>
+					<v-list-item link dense v-for="(notificationItem, index) in userMenuItems" :key="index" router :to="notificationItem.link">
+						<v-list-item-title>{{ notificationItem.title }}</v-list-item-title>
+					</v-list-item>
+					<v-list-item link dense router>
+						<v-list-item-title @click="logOutSnackbar = true">Log out</v-list-item-title>
+					</v-list-item>
+				</v-list>
+			</v-menu>
 		</v-app-bar>
 
-		<v-navigation-drawer mini-variant-width="7%" app clipped permanent v-bind:mini-variant="drawerExpanded" floating width="25%">
+		<v-navigation-drawer mini-variant-width="50px" app clipped permanent v-bind:mini-variant="drawerExpanded" floating width="170px">
 			<v-list dense>
 				<v-list-item link @click.stop="drawerExpanded = !drawerExpanded" dense>
 					<v-list-item-action>
@@ -105,7 +121,14 @@
 			<router-view />
 		</v-content>
 
-		<v-footer app>
+		<v-snackbar v-model="logOutSnackbar" timeout="3000">
+			{{ logOutSnackbarText }}
+			<v-btn color="pink" text @click="logOutSnackbar = false">
+				Close
+			</v-btn>
+		</v-snackbar>
+
+		<v-footer hide app absolute>
 			<span>&copy; ME IRL&trade; </span>
 		</v-footer>
 	</v-app>
@@ -119,7 +142,17 @@
 		data: () => ({
 			drawerExpanded: true,
 			userMenuExpanded: false,
-			items: [{ title: "Profile", link: "/profile" }, { title: "Settings", link: "/settings" }, { title: "Log out" }]
+			logOutSnackbar: false,
+			notifocationsListExpanded: true,
+			logOutSnackbarText: "You have logged out.",
+			userMenuItems: [
+				{ title: "Profile", link: "/profile" },
+				{ title: "Settings", link: "/settings" }
+			],
+			notificationItems: [
+				{ title: "Notification 1", link: "/notifications/1" },
+				{ title: "Notification 2", link: "/notifications/2" }
+			]
 		}),
 		created() {
 			this.$vuetify.theme.dark = true;
@@ -129,7 +162,10 @@
 				return this.drawerExpanded === true ? "mdi-arrow-right" : "mdi-arrow-left";
 			},
 			changeArrowOnExpandUserMenu: function() {
-				return this.userMenuExpanded === true ? "mdi-arrow-down" : "mdi-arrow-up";
+				return this.userMenuExpanded === true ? "mdi-menu-down" : "mdi-menu-up";
+			},
+			notificationBadgeNum: function() {
+				return this.notificationItems.length;
 			}
 		}
 	};
