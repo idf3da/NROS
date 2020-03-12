@@ -1,47 +1,36 @@
 <template>
-	<div id="app">
-		<ejs-chart id="container" :primaryXAxis="primaryXAxis">
-			<e-series-collection>
-				<e-series :dataSource="seriesData" type="Line" xName="month" yName="sales" name="Sales"> </e-series>
-			</e-series-collection>
-		</ejs-chart>
-	</div>
+	<section class="container">
+		<h1>Demo examples of vue-chartjs</h1>
+		<div class="columns">
+			<div class="column">
+				<h3>Line Chart</h3>
+				<line-chart></line-chart>
+			</div>
+			<div class="column">
+				<h3>Bar Chart</h3>
+				<!--Bar Chart example-->
+			</div>
+		</div>
+		<div class="columns">
+			<div class="column">
+				<h3>Bubble Chart</h3>
+				<!--Bubble Chart example-->
+			</div>
+			<div class="column">
+				<h3>Reactivity - Live update upon change in datasets</h3>
+				<!--Reactivity Line Chart example-->
+			</div>
+		</div>
+	</section>
 </template>
-<script>
-	import Vue from "vue";
-	import { ChartPlugin, LineSeries, Category } from "@syncfusion/ej2-vue-charts";
 
-	Vue.use(ChartPlugin);
+<script>
+	import LineChart from "@/components/LineChart";
 
 	export default {
-		data() {
-			return {
-				seriesData: [
-					{ month: "Jan", sales: 35 },
-					{ month: "Feb", sales: 28 },
-					{ month: "Mar", sales: 34 },
-					{ month: "Apr", sales: 32 },
-					{ month: "May", sales: 40 },
-					{ month: "Jun", sales: 32 },
-					{ month: "Jul", sales: 35 },
-					{ month: "Aug", sales: 55 },
-					{ month: "Sep", sales: 38 },
-					{ month: "Oct", sales: 30 },
-					{ month: "Nov", sales: 25 },
-					{ month: "Dec", sales: 32 }
-				],
-				primaryXAxis: {
-					valueType: "Category"
-				}
-			};
-		},
-		provide: {
-			chart: [LineSeries, Category]
+		name: "VueChartJS",
+		components: {
+			LineChart
 		}
 	};
 </script>
-<style>
-	#container {
-		height: 350px;
-	}
-</style>

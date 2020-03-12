@@ -4,52 +4,70 @@
 			<v-col>
 				<v-card class="pa-6" outlined tile>
 					1x1
+					<line-chart></line-chart>
 				</v-card>
 				<v-card class="pa-6" outlined tile>
 					1x2
+					<bar-chart></bar-chart>
 				</v-card>
 			</v-col>
 			<v-col>
 				<v-card class="pa-6" outlined tile>
 					2x1
+					<bubble-chart></bubble-chart>
 				</v-card>
 				<v-card class="pa-6" outlined tile>
 					2x1
+					<reactive :chart-data="datacollection"></reactive>
+					<button class="button is-primary" @click="fillData()">Randomize</button>
 				</v-card>
 			</v-col>
 		</v-row>
 	</div>
 </template>
 <script>
-	import Vue from "vue";
-	import { ChartPlugin, LineSeries, Category } from "@syncfusion/ej2-vue-charts";
-
-	Vue.use(ChartPlugin);
+	import LineChart from "@/components/LineChart";
+	import BarChart from "@/components/BarChart";
+	import BubbleChart from "@/components/BubbleChart";
+	import Reactive from "@/components/Reactive";
 
 	export default {
+		name: "VueChartJS",
+		components: {
+			LineChart,
+			BarChart,
+			BubbleChart,
+			Reactive
+		},
 		data() {
 			return {
-				seriesData: [
-					{ month: "Jan", sales: 35 },
-					{ month: "Feb", sales: 28 },
-					{ month: "Mar", sales: 34 },
-					{ month: "Apr", sales: 32 },
-					{ month: "May", sales: 40 },
-					{ month: "Jun", sales: 32 },
-					{ month: "Jul", sales: 35 },
-					{ month: "Aug", sales: 55 },
-					{ month: "Sep", sales: 38 },
-					{ month: "Oct", sales: 30 },
-					{ month: "Nov", sales: 25 },
-					{ month: "Dec", sales: 32 }
-				],
-				primaryXAxis: {
-					valueType: "Category"
-				}
+				// instantiating datacollection with null
+				datacollection: null
 			};
 		},
-		provide: {
-			chart: [LineSeries, Category]
+		created() {
+			//anytime the vue instance is created, call the fillData() function.
+			this.fillData();
+		},
+		methods: {
+			fillData() {
+				this.datacollection = {
+					// Data for the y-axis of the chart
+					labels: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+					datasets: [
+						{
+							label: "Data One",
+							backgroundColor: "#f87979",
+							// Data for the x-axis of the chart
+							data: [this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt(), this.getRandomInt()]
+						}
+					]
+				};
+			},
+			getRandomInt() {
+				// JS function to generate numbers to be used for the chart
+				return Math.floor(Math.random() * (50 - 5 + 1)) + 5;
+			}
 		}
 	};
 </script>
