@@ -1,14 +1,14 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
-import MainMenu from "../views/MainMenu.vue";
+import Home from "../views/Home.vue";
 
 Vue.use(VueRouter);
 
 const routes = [
 	{
 		path: "/main",
-		name: "MainMenu",
-		component: MainMenu
+		name: "Home",
+		component: Home
 	},
 	{
 		path: "/about",

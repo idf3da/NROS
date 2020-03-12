@@ -1,10 +1,23 @@
 <template>
-	<div id="app">
-		<ejs-chart id="container" :primaryXAxis="primaryXAxis">
-			<e-series-collection>
-				<e-series :dataSource="seriesData" type="Line" xName="month" yName="sales" name="Sales"> </e-series>
-			</e-series-collection>
-		</ejs-chart>
+	<div class="home">
+		<v-row style="padding: 30px" class="mb-2" justify="center" no-gutters>
+			<v-col>
+				<v-card class="pa-6" outlined tile>
+					1x1
+				</v-card>
+				<v-card class="pa-6" outlined tile>
+					1x2
+				</v-card>
+			</v-col>
+			<v-col>
+				<v-card class="pa-6" outlined tile>
+					2x1
+				</v-card>
+				<v-card class="pa-6" outlined tile>
+					2x1
+				</v-card>
+			</v-col>
+		</v-row>
 	</div>
 </template>
 <script>
@@ -40,8 +53,9 @@
 		}
 	};
 </script>
+
 <style>
 	#container {
-		height: 350px;
+		height: 400px;
 	}
 </style>
