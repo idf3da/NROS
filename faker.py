@@ -1,5 +1,5 @@
-import datetime
 import random
+import datetime
 
 from final_abstract import ProductItem
 
@@ -12,6 +12,18 @@ class FakedData:
 
 
 class Faker:
+    def do(self, locations_count, products_count, data_package_count, days_count):
+        locations = [i for i in range(locations_count)]
+        products = [i for i in range(products_count)]
+        probabilities = [
+            [(random.random() + 0.8 if random.random() > 0.9 else random.random()) for j in range(products_count)]
+            for i in range(locations_count)]
+        result = []
+        for index, location in enumerate(locations):
+            for day in range(days_count):
+                result.append(self.generate_data(products, probabilities[index], data_package_count, location, day))
+        return result
+
     def generate_data(self, products, probabilities, count, location, date):
         items = []
         rand_sum = 0.0
@@ -32,7 +44,7 @@ class Faker:
             product_count[r] += 1
         data = []
         for index, count in enumerate(product_count):
-            print(index, ':', count, end=' ')
+            # print(index, ':', count, end=' ')
             if count:
                 data.append(ProductItem(items[index][1], count))
         return FakedData(data, location, date)
@@ -40,5 +52,10 @@ class Faker:
 
 random.seed(datetime.datetime.now().microsecond)
 faker = Faker()
-faker.generate_data([i for i in range(20)], [1 / 2 for i in range(10)] + [2 / 4 for i in range(10)], 40, 'Kremlin',
-                    '01.01.2001')
+result = faker.do(10, 20, 100, 3)
+for data in result:
+    print('location: ', data.location)
+    print('date: ', data.date)
+    for item in data.product_items:
+        print(item.id, ':', item.count, end=' | ')
+    print()

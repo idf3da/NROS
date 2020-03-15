@@ -17,8 +17,8 @@ class ProductType:  # singletone object
 
 
 class ProductItem:  # Молоко: 2 шт.
-    def __init__(self, ID, count):
-        self.ID = ID
+    def __init__(self, id, count):
+        self.id = id
         self.count = count
         # ...
 
@@ -40,7 +40,6 @@ class Warehouse(Property):  # ! WH
 
     def send_product(self):
         pass
-
 
 class RetailPoint(Property):  # ! RP
     def __init__(self, ID, Location, StorageCapacity):
