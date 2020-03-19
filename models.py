@@ -43,7 +43,7 @@ class Location(db.Model):
 
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String('100'))
+    name = db.Column(db.String(100))
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
     storage_capacity = db.Column(db.Integer)
 
