@@ -17,20 +17,19 @@ class ProductType(db.Model):  # singletone object: Молоко, Домик в �
     price = db.Column(db.Integer)
     volume = db.Column(db.Integer)
     tags = db.relationship('Tag', secondary=tags, backref=db.backref('product_types', lazy='dynamic'), lazy='dynamic')
-    '''возможно стоит изменить lazy='dynamic', чтобы получать не запрос '''
-    ''' если мы хотим возможность брать все ProductItems от ProductType, то надо добавить
-        items = db.relationship('product_item', backref='product_type', lazy='dynamic')'''
+    product_items = db.relationship('ProductItem', backref='product_type', lazy='dynamic')
 
 
 class ProductItem(db.Model):  # Молоко: 2 шт.
     id = db.Column(db.Integer, primary_key=True)
     count = db.Column(db.Integer)
     product_type_id = db.Column(db.Integer, db.ForeignKey('product_type.id'))
+    product_group_id = db.Column(db.Integer, db.ForeignKey('product_group.id'))
 
 
 class ProductGroup(db.Model):  # [Молоко: 2шт, Кефир: 3шт]
     id = db.Column(db.Integer, primary_key=True)
-    products = db.relationship('product_item', backref='product_group', lazy='dynamic')
+    products = db.relationship('ProductItem', backref='product_group', lazy='dynamic')
 
 
 class Location(db.Model):
