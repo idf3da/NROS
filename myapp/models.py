@@ -29,12 +29,14 @@ class ProductItem(db.Model):  # Молоко: 2 шт.
 
 class ProductGroup(db.Model):  # [Молоко: 2шт, Кефир: 3шт]
     id = db.Column(db.Integer, primary_key=True)
-    products = db.relationship('ProductItem', backref='product_group', lazy='dynamic')
+    product_items = db.relationship('ProductItem', backref='product_group', lazy='dynamic')
 
 
 class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(100))
+    latitude = db.Column(db.Float())
+    longitude = db.Column(db.Float())
     '''
     надо подумать как мы будем реализовывать локацию
     '''
