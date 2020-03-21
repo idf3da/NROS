@@ -11,7 +11,7 @@
 					labels: ["Data"],
 					datasets: [
 						{
-							label: "Data One",
+							label: "???",
 							backgroundColor: "#f87979",
 							pointBackgroundColor: "white",
 							borderWidth: 1,
@@ -21,7 +21,7 @@
 								{
 									x: 100,
 									y: 0,
-									r: 10
+									r: 20
 								},
 								{
 									x: 60,
