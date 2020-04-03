@@ -3,6 +3,14 @@
 		<v-row style="padding: 30px" class="mb-2" justify="center" no-gutters>
 			<v-col>
 				<v-card class="pa-6" outlined tile>
+					0x0
+					<bar-chart></bar-chart>
+				</v-card>
+			</v-col>
+		</v-row>
+		<v-row style="padding: 30px" class="mb-2" justify="center" no-gutters>
+			<v-col>
+				<v-card class="pa-6" outlined tile>
 					1x1
 					<line-chart></line-chart>
 				</v-card>
@@ -17,9 +25,9 @@
 					<bubble-chart></bubble-chart>
 				</v-card>
 				<v-card class="pa-6" outlined tile>
-					2x1
+					2x2
 					<reactive :chart-data="datacollection"></reactive>
-					<button class="button is-primary" @click="fillData()">Randomize</button>
+					<button class="button is-primary" @click="fillData()" :color="cyan">Randomize</button>
 				</v-card>
 			</v-col>
 		</v-row>

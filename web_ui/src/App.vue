@@ -84,7 +84,7 @@
 				</v-list-item>
 				<v-list-item link dense to="/settings">
 					<v-list-item-action>
-						<v-icon>mdi-settings</v-icon>
+						<v-icon>mdi-cog-outline</v-icon>
 					</v-list-item-action>
 					<v-list-item-content>
 						<v-list-item-title>Settings</v-list-item-title>
@@ -128,7 +128,7 @@
 			</v-btn>
 		</v-snackbar>
 
-		<v-footer hide app absolute>
+		<v-footer hide>
 			<span>&copy; ME IRL&trade; </span>
 		</v-footer>
 	</v-app>

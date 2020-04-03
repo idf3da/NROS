@@ -8,16 +8,16 @@
 			return {
 				datacollection: {
 					//Data to be represented on x-axis
-					labels: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+					labels: ["Web UI", "Responsiveness", "DB", "Backend", "Frontend", "Flex"],
 					datasets: [
 						{
-							label: "Data One",
-							backgroundColor: "#f87979",
+							label: "Specs of NROS",
+							backgroundColor: "#00FFFF",
 							pointBackgroundColor: "white",
 							borderWidth: 1,
 							pointBorderColor: "#249EBF",
 							//Data to be represented on y-axis
-							data: [40, 20, 30, 50, 90, 10, 20, 40, 50, 70, 90, 100]
+							data: [100, 80, 10, 5, 90, -20]
 						}
 					]
 				},
@@ -37,7 +37,7 @@
 						xAxes: [
 							{
 								gridLines: {
-									display: false
+									display: true
 								}
 							}
 						]
