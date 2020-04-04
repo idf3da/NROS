@@ -1,7 +1,6 @@
-import random
 import datetime
-
-from final_abstract import ProductItem
+import random
+from myapp.models import ProductItem
 
 
 class FakedData:

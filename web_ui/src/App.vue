@@ -2,9 +2,14 @@
 	<v-app id="web_ui">
 		<v-app-bar app clipped-left dense flat hide-on-scrol overlap>
 			<v-img src="projectIconWhite.png" max-height="40" max-width="40"></v-img>
-			<v-toolbar-title>NROS</v-toolbar-title>
+			<div><v-toolbar-title>NROS</v-toolbar-title></div>
 			<v-spacer></v-spacer>
-
+            <v-tabs centered v-if="currentRouteName === 'DataChecker'">
+                <v-tab link dense to="/data_checker/types">Types</v-tab>
+                <v-tab link dense to="/data_checker/items">Items</v-tab>
+                <v-tab link dense to="/data_checker/groups">Groups</v-tab>
+                <v-tab link dense to="/data_checker/locations">Locations</v-tab>
+            </v-tabs>
 			<v-menu absolute offset-y close-on-click transition="scale-transition">
 				<template
 					v-slot:activator="{
@@ -80,6 +85,14 @@
 					</v-list-item-action>
 					<v-list-item-content>
 						<v-list-item-title>Map</v-list-item-title>
+					</v-list-item-content>
+				</v-list-item>
+				<v-list-item link dense to="/data_checker">
+					<v-list-item-action>
+						<v-icon>mdi-database</v-icon>
+					</v-list-item-action>
+					<v-list-item-content>
+						<v-list-item-title>Data Checker</v-list-item-title>
 					</v-list-item-content>
 				</v-list-item>
 				<v-list-item link dense to="/settings">
@@ -178,7 +191,10 @@
 			},
 			notificationBadgeNum: function() {
 				return this.notificationItems.length;
-			}
+			},
+			currentRouteName: function () {
+                return this.$route.name
+            }
 		}
 	};
 </script>

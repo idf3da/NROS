@@ -34,7 +34,32 @@ const routes = [
 		path: "/login",
 		name: "Login",
 		component: () => import("../views/Login.vue")
-	}
+	},
+	{
+		path: "/data_checker",
+		redirect: 'data_checker/types',
+		name: "DataChecker",
+	},
+	{
+		path: "/data_checker/types",
+		name: "DataChecker",
+		component: () => import("../views/Types.vue")
+	},
+	{
+		path: "/data_checker/items",
+		name: "DataChecker",
+		component: () => import("../views/Items.vue")
+	},
+	{
+		path: "/data_checker/groups",
+		name: "DataChecker",
+		component: () => import("../views/Groups.vue")
+	},
+	{
+		path: "/data_checker/locations",
+		name: "DataChecker",
+		component: () => import("../views/Locations.vue")
+	},
 ];
 
 const router = new VueRouter({
