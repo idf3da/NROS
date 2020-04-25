@@ -11,16 +11,24 @@ class FakedData:
 
 
 class Faker:
-    def do(self, locations_count, products_count, data_package_count, days_count):
+    def do(self, locations_count, products_count,
+           data_package_count, days_count):
         locations = [i for i in range(locations_count)]
         products = [i for i in range(products_count)]
         probabilities = [
-            [(random.random() + 0.8 if random.random() > 0.9 else random.random()) for j in range(products_count)]
-            for i in range(locations_count)]
+            [(random.random() + 0.8 if random.random() > 0.9 else
+                random.random())
+                for j in range(products_count)]
+            for i in range(locations_count)
+        ]
         result = []
         for index, location in enumerate(locations):
             for day in range(days_count):
-                result.append(self.generate_data(products, probabilities[index], data_package_count, location, day))
+                result.append(self.generate_data(products,
+                                                 probabilities[index],
+                                                 data_package_count,
+                                                 location, day)
+                              )
         return result
 
     def generate_data(self, products, probabilities, count, location, date):
@@ -33,14 +41,14 @@ class Faker:
         product_count = [0 for i in range(len(items))]
         for i in range(count):
             p = random.random() * rand_sum
-            l, r = -1, len(items)  # binary search
-            while r - l > 1:
-                m = (l + r) // 2
+            lhs, rhs = -1, len(items)  # binary search
+            while rhs - lhs > 1:
+                m = (lhs + rhs) // 2
                 if items[m][0] < p:
-                    l = m
+                    lhs = m
                 else:
-                    r = m
-            product_count[r] += 1
+                    rhs = m
+            product_count[rhs] += 1
         data = []
         for index, count in enumerate(product_count):
             # print(index, ':', count, end=' ')

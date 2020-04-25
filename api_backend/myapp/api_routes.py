@@ -6,30 +6,37 @@ from myapp.models import *
 
 
 def json_type(product_type):
-    return {'id': product_type.id, 'name': product_type.name, 'price': product_type.price,
+    return {'id': product_type.id, 'name': product_type.name,
+            'price': product_type.price,
             'volume': product_type.volume}
 
 
 def create_type(query):
-    return ProductType(name=query['name'], price=query['price'], volume=query['volume'])
+    return ProductType(name=query['name'], price=query['price'],
+                       volume=query['volume'])
 
 
 def create_type_with_id(query, product_type_id):
-    return ProductType(id=product_type_id, name=query['name'], price=query['price'], volume=query['volume'])
+    return ProductType(id=product_type_id, name=query['name'],
+                       price=query['price'], volume=query['volume'])
 
 
 def json_item(product_item):
-    return {'id': product_item.id, 'product_type': json_type(product_item.product_type),
+    return {'id': product_item.id,
+            'product_type': json_type(product_item.product_type),
             'product_type_id': product_item.product_type_id,
             'count': product_item.count}
 
 
 def create_item(query):
-    return ProductItem(product_type_id=query['product_type_id'], count=query['count'])
+    return ProductItem(product_type_id=query['product_type_id'],
+                       count=query['count'])
 
 
 def create_item_with_id(query, product_item_id):
-    return ProductItem(id=product_item_id, product_type_id=query['product_type_id'], count=query['count'])
+    return ProductItem(id=product_item_id,
+                       product_type_id=query['product_type_id'],
+                       count=query['count'])
 
 
 def json_group(product_group):
@@ -40,18 +47,23 @@ def json_group(product_group):
 
 def create_group(query):
     return ProductGroup(
-        product_items=[ProductItem.query.get_or_404(product_item['product_item']['id']) for product_item in
-                       query['product_items']])
+        product_items=[
+            ProductItem.query.get_or_404(product_item['product_item']['id'])
+            for product_item in
+            query['product_items']])
 
 
 def create_group_with_id(query, product_group_id):
     return ProductGroup(id=product_group_id,
-                        product_items=[ProductItem.query.get_or_404(product_item['product_item']['id'])
-                                       for product_item in query['product_items']])
+                        product_items=[ProductItem.query.get_or_404(
+                            product_item['product_item']['id'])
+                                       for product_item in
+                                       query['product_items']])
 
 
 def json_location(location):
-    return {'id': location.id, 'address': location.address, 'latitude': location.latitude,
+    return {'id': location.id, 'address': location.address,
+            'latitude': location.latitude,
             'longitude': location.longitude}
 
 
@@ -61,7 +73,8 @@ def create_location(query):
 
 
 def create_location_with_id(query, location_id):
-    return Location(id=location_id, address=query['address'], latitude=query['latitude'],
+    return Location(id=location_id, address=query['address'],
+                    latitude=query['latitude'],
                     longitude=query['longitude'])
 
 
@@ -69,7 +82,8 @@ class ListProductTypesApi(Resource):
     @staticmethod
     def get():
         product_types = ProductType.query.all()
-        return {'product_types': [json_type(product_type) for product_type in product_types]}, 200
+        return {'product_types': [json_type(product_type) for product_type in
+                                  product_types]}, 200
 
     @staticmethod
     def post():
@@ -95,7 +109,6 @@ class ProductTypesApi(Resource):
         "price": 10,
         "volume": 1
     }
-    
     '''
 
     def delete(self, product_type_id):
@@ -118,7 +131,8 @@ class ProductTypesApi(Resource):
 class ListProductItemsApi(Resource):
     def get(self):
         product_items = ProductItem.query.all()
-        return {'product_items': [json_item(product_item) for product_item in product_items]}, 200
+        return {'product_items': [json_item(product_item) for product_item in
+                                  product_items]}, 200
 
     def post(self):
         if not request.json:
@@ -162,7 +176,8 @@ class ProductItemsApi(Resource):
 class ListProductGroupsApi(Resource):
     def get(self):
         product_groups = ProductGroup.query.all()
-        return {'product_groups': [json_group(product_group) for product_group in
+        return {'product_groups': [json_group(product_group) for product_group
+                                   in
                                    product_groups]}, 200
 
     def post(self):
@@ -231,7 +246,8 @@ class ProductGroupsApi(Resource):
 class ListLocationApi(Resource):
     def get(self):
         locations = Location.query.all()
-        return {'locations': [json_location(location) for location in locations]}, 200
+        return {'locations': [json_location(location) for location in
+                              locations]}, 200
 
     def post(self):
         if not request.json:

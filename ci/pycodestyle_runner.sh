@@ -1,6 +1,6 @@
 #!/bin/bash
 mkdir public
-pycodestyle ../ --count -qq &> ./public/pycodestyle.txt
+pycodestyle ../  &> ./public/pycodestyle.txt
 OUTPUT=$(cat ./public/pycodestyle.txt)
 echo "$OUTPUT"
 if [[ "$OUTPUT" == '' ]]
@@ -9,3 +9,4 @@ then
 else
     anybadge --label=pep8 --value=failing --file=public/pycodestyle.svg passing=green failing=red
 fi
+sleep 100000
