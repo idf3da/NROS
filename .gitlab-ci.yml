@@ -17,7 +17,7 @@ docs:
     - anybadge --label=docs --value=passing --file=public/docs.svg passing=green
   artifacts:
     paths:
-      - public/docs.dvg
+      - public/docs.svg
 
 pep8:
   stage: style
