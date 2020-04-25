@@ -9,7 +9,7 @@ stages:
 pep8:
   stage: style
   before_script:
-  - pip install -r ci/pycodestyle_requirementas.txt
+  - pip install -r ci/pycodestyle_requirements.txt
   script:
   - ./ci/pycodestyle_runner.sh
   artifacts:
