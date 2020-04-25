@@ -1,29 +1,28 @@
 image: python:latest
 
 before_script:
-  - python -V
+ - python -V
 
 stages:
-  - style
+ - style
 
 pep8:
-  stage: style
-  before_script:
-  - pip install -r ci/pycodestyle_requirements.txt
-  script:
-  - ./ci/pycodestyle_runner.sh
-  artifacts:
-    paths:
-      - public/pycodestyle.txt
+ stage: style
+ before_script:
+ - pip install -r ci/pycodestyle_requirements.txt
+ script:
+ - ./ci/pycodestyle_runner.sh
+ artifacts:
+ paths:
+ - public/pycodestyle.txt
 
 pylint:
-  stage: style
-  before_script:
-  - pip install -r ci/pylint_requirements.txt
-  script:
-  - ./ci/pylint_runner.sh
-  artifacts:
-    paths:
-      - public/pylint.svg
-      - public/pylint.html
-
+ stage: style
+ before_script:
+ - pip install -r ci/pylint_requirements.txt
+ script:
+ - ./ci/pylint_runner.sh
+ artifacts:
+ paths:
+ - public/pylint.svg
+ - public/pylint.html
