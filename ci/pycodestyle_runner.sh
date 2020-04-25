@@ -1,6 +1,6 @@
 #!/bin/bash
 mkdir public
-pycodestyle ../  &> ./public/pycodestyle.txt
+pycodestyle ../ --count -qq &> ./public/pycodestyle.txt
 OUTPUT=$(cat ./public/pycodestyle.txt)
 echo "$OUTPUT"
 if [[ "$OUTPUT" == '' ]]
