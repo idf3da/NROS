@@ -34,6 +34,6 @@ api_test:
   before_script:
     - pip install -r requirements.txt
   script:
-    - python te./api
+    - ./ci/api_test.sh
   artifacts:
     paths:
