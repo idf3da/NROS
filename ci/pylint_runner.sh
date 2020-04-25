@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # run pylint
-pylint --disable=E0401 $(ls -d */) | tee pylint.txt
+pylint --disable=E0401 --disable=R0401 --disable=W0614 $(ls -d */) | tee pylint.txt
 
 # get badge
 mkdir public
