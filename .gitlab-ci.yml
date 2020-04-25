@@ -4,8 +4,9 @@ before_script:
   - python -V
 
 stages:
-  - test
   - style
+  - test
+
 
 
 pep8:
