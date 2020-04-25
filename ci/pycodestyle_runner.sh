@@ -1,6 +1,6 @@
 #!/bin/bash
 mkdir public
-pycodestyle ../ --count -qq &> ./public/pycodestyle.txt
+pycodestyle ../ --exclude="__init__.py" --count -qq &> ./public/pycodestyle.txt
 OUTPUT=$(cat ./public/pycodestyle.txt)
 echo "$OUTPUT"
 if [[ "$OUTPUT" == '' ]]
