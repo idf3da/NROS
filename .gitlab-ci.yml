@@ -18,6 +18,7 @@ pep8:
   artifacts:
     paths:
       - public/pycodestyle.txt
+      - public/pycodestyle.svg
 
 pylint:
   stage: style
