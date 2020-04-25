@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # run pylint
-pylint $(ls -d */) | tee pylint.txt
+pylint --disable=E0401 $(ls -d */) | tee pylint.txt
 
 # get badge
 mkdir public
