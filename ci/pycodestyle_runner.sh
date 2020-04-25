@@ -1,6 +1,5 @@
 #!/bin/bash
 mkdir public
-pip install -r ./pycodestyle_requirements.txt
 pycodestyle ../ --count -qq &> ./public/pycodestyle.txt
 OUTPUT=$(cat ./public/pycodestyle.txt)
 echo "$OUTPUT"
