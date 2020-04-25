@@ -10,6 +10,8 @@ stages:
 
 docs:
   stage: badges
+  before_script:
+    - pip install anybadge
   script:
     - anybadge --label=docs --value=passing --file=public/docs.svg passing=green
   artifacts:
