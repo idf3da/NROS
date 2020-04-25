@@ -9,4 +9,3 @@ then
 else
     anybadge --label=pep8 --value=failing --file=public/pycodestyle.svg passing=green failing=red
 fi
-sleep 100000
