@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir public
-python ./api_backend/test.py | tee public/api_test.txt
+python ./api_backend/test.py > public/api_test.txt
 OUTPUT=$(cat ./public/api_test.txt)
 echo "$OUTPUT"
 SUB='OK'
