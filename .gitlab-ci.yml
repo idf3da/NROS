@@ -5,6 +5,7 @@ before_script:
 
 stages:
   - style
+  - test
 
 pep8:
   stage: style
