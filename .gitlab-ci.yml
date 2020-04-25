@@ -39,3 +39,5 @@ api_test:
     - ./ci/api_test.sh
   artifacts:
     paths:
+      - public/api_test.svg
+      - public/api_test.txt
