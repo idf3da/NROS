@@ -66,11 +66,13 @@ def create_location_with_id(query, location_id):
 
 
 class ListProductTypesApi(Resource):
-    def get(self):
+    @staticmethod
+    def get():
         product_types = ProductType.query.all()
         return {'product_types': [json_type(product_type) for product_type in product_types]}, 200
 
-    def post(self):
+    @staticmethod
+    def post():
         if not request.json:
             abort(400, "No data")
         product_type = create_type(request.json)
@@ -80,7 +82,8 @@ class ListProductTypesApi(Resource):
 
 
 class ProductTypesApi(Resource):
-    def get(self, product_type_id):
+    @staticmethod
+    def get(product_type_id):
         product_type = ProductType.query.get_or_404(product_type_id)
         return {'product_type': json_type(product_type)}, 200
 

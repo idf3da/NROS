@@ -9,9 +9,9 @@ stages:
 pep8:
   stage: style
   before_script:
-  - pip install -r ci/pycodestyle_requirements.txt
+    - pip install -r ci/pycodestyle_requirementas.txt
   script:
-  - ./ci/pycodestyle_runner.sh
+    - ./ci/pycodestyle_runner.sh
   artifacts:
     paths:
       - public/pycodestyle.txt
@@ -19,11 +19,19 @@ pep8:
 pylint:
   stage: style
   before_script:
-  - pip install -r ci/pylint_requirements.txt
+    - pip install -r ci/pylint_requirements.txt
   script:
-  - ./ci/pylint_runner.sh
+    - ./ci/pylint_runner.sh
   artifacts:
     paths:
       - public/pylint.svg
       - public/pylint.html
 
+api_test:
+  stage: test
+  before_script:
+    - pip instal -r requirements.txt
+  script:
+    - python te./api
+  artifacts:
+    paths:
