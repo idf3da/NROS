@@ -4,10 +4,17 @@ before_script:
   - python -V
 
 stages:
+  - badges
   - style
   - test
 
-
+docs:
+  stage: badges
+  script:
+    - anybadge --label=docs --value=passing --file=public/docs.svg passing=green
+  artifacts:
+    paths:
+      - public/docs.dvg
 
 pep8:
   stage: style
