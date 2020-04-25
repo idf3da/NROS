@@ -23,6 +23,7 @@ pep8:
 pylint:
   stage: style
   before_script:
+    - pip install -r requirements.txt
     - pip install -r ci/pylint_requirements.txt
   script:
     - ./ci/pylint_runner.sh
