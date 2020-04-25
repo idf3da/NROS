@@ -13,6 +13,7 @@ docs:
   before_script:
     - pip install anybadge
   script:
+    - mkdir public
     - anybadge --label=docs --value=passing --file=public/docs.svg passing=green
   artifacts:
     paths:
