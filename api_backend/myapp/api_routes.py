@@ -13,8 +13,7 @@ def json_type(product_type):
     :return dict: dictionary containing converted Product Type
     """
     return {'id': product_type.id, 'name': product_type.name,
-            'price': product_type.price,
-            'volume': product_type.volume}
+            'price': product_type.price}
 
 
 def create_type(query):

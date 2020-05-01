@@ -11,7 +11,7 @@ TAGS = db.Table('tags',
                 )
 
 
-class Tag(db.Model): # pylint: disable=too-few-public-methods
+class Tag(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains Tag, connected with Product Types.
     Example:
         id: 1
@@ -20,7 +20,7 @@ class Tag(db.Model): # pylint: disable=too-few-public-methods
     id = db.Column(db.Integer, primary_key=True)
 
 
-class ProductType(db.Model): # pylint: disable=too-few-public-methods
+class ProductType(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains Product Type, connected with Tags, Product Items.
     Example:
         id: 1
@@ -39,7 +39,7 @@ class ProductType(db.Model): # pylint: disable=too-few-public-methods
                                     lazy='dynamic')
 
 
-class ProductItem(db.Model): # pylint: disable=too-few-public-methods
+class ProductItem(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains Product Item, connected with Product Type,
     Product Groups.
         Example:
@@ -56,7 +56,7 @@ class ProductItem(db.Model): # pylint: disable=too-few-public-methods
     product_group_id = db.Column(db.Integer, db.ForeignKey('product_group.id'))
 
 
-class ProductGroup(db.Model): # pylint: disable=too-few-public-methods
+class ProductGroup(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains Product Group, connected with Product Items.
         Example:
             id: 1
@@ -67,7 +67,7 @@ class ProductGroup(db.Model): # pylint: disable=too-few-public-methods
                                     lazy='dynamic')
 
 
-class Location(db.Model): # pylint: disable=too-few-public-methods
+class Location(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains Location.
     Example:
         address: Yubileynaya Street, 13/2
