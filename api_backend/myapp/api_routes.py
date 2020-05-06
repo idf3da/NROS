@@ -552,7 +552,7 @@ class ListWarehousesApi(Resource):
             :return: list[Warehouse]
         """
         warehouses = Warehouse.query.all()
-        return {'warehouses': [json_location(warehouse) for warehouse in
+        return {'warehouses': [json_warehouse(warehouse) for warehouse in
                                warehouses]}, 200
 
     @staticmethod
@@ -560,7 +560,7 @@ class ListWarehousesApi(Resource):
         """ Create new Warehouse
             Example warehouse post query:
             {
-                "location_id": 1,
+                "warehouse_id": 1,
                 "fullness": 10,
                 "capacity": 20
             }
@@ -622,7 +622,7 @@ class ListShopsApi(Resource):
             :return: list[Shop]
         """
         shops = Shop.query.all()
-        return {'shops': [json_location(shops) for shops in
+        return {'shops': [json_shop(shops) for shops in
                           shops]}, 200
 
     @staticmethod
@@ -630,7 +630,7 @@ class ListShopsApi(Resource):
         """ Create new Shop
             Example shop post query:
             {
-                "location_id": 1,
+                "shop_id": 1,
                 "fullness": 10,
                 "capacity": 20
             }
@@ -692,7 +692,7 @@ class ListLSTMsApi(Resource):
             :return: list[LSTM]
         """
         lstms = LSTM.query.all()
-        return {'LSTMs': [json_location(LSTMs) for LSTMs in
+        return {'LSTMs': [json_shop(LSTMs) for LSTMs in
                           lstms]}, 200
 
     @staticmethod
