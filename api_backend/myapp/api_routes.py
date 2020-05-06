@@ -212,32 +212,42 @@ def json_lstm(lstm):
         :param lstm: (LSTM) LSTM object
         :return dict: dictionary containing converted LSTM
         """
-    return {'id': lstm.id, 'location_id': lstm.location_id,
-            'fullness': lstm.fullness, 'capacity': lstm.capacity}
+    return {'id': lstm.id, 'shop_id': lstm.shop_id,
+            'product_type_id': lstm.product_type_id, 'alpha': lstm.alpha,
+            'beta': lstm.beta, 'gamma': lstm.gamma}
 
 
 def create_lstm(query):
     """ Function creates Location from query.
         :param query: (dict) Example: { shop_id: 1,
-                                        product_type_id: 1 }
+                                        product_type_id: 1,
+                                        alpha: 0.1,
+                                        beta: 0.1,
+                                        gamma: 0.1
+                                      }
         :return LSTM: LSTM object
     """
     # тут как то нужно прогонять и создавать model и scope
     return LSTM(shop_id=query['shop_id'], product_type_id=query[
-        'product_type_id'])
+        'product_type_id'], alpha=query['alpha'], beta=query['beta'],
+                gamma=query['gamma'])
 
 
 def create_lstm_with_id(query, lstm_id):
     """ Function creates LSTM with id from query.
-        :param query: (dict) Example: { id: 1,
-                                        shop_id: 1,
-                                        product_type_id: 1 }
+        :param query: (dict) Example: { shop_id: 1,
+                                        product_type_id: 1,
+                                        alpha: 0.1,
+                                        beta: 0.1,
+                                        gamma: 0.1
+                                      }
         :param lstm_id: (int)
         :return LSTM: LSTM object
     """
     # тут как то нужно прогонять и создавать model и scope
     return LSTM(id=lstm_id, shop_id=query['shop_id'], product_type_id=query[
-        'product_type_id'])
+        'product_type_id'], alpha=query['alpha'], beta=query['beta'],
+                gamma=query['gamma'])
 
 
 class ListProductTypesApi(Resource):
@@ -699,6 +709,9 @@ class ListLSTMsApi(Resource):
             {
                 shop_id: 1,
                 product_type_id: 1
+                alpha: 0.1,
+                beta: 0.1,
+                gamma: 0.1
             }
             :return: jsonifyed LSTM
         """
