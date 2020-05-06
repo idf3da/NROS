@@ -29,9 +29,8 @@ class TestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    #log = 'public/api_test.txt'
-    #file = open(log, 'w')
-    #runner = unittest.TextTestRunner(file)
-    #unittest.main(testRunner=runner)
-    #file.close()
-    unittest.main()
+    log = 'public/api_test.txt'
+    file = open(log, 'w')
+    runner = unittest.TextTestRunner(file)
+    unittest.main(testRunner=runner)
+    file.close()
