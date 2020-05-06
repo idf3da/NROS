@@ -1,7 +1,6 @@
 """
 Module contains SQLAlchemy-based ORM
 """
-
 from myapp import db
 
 TAGS = db.Table('tags',
@@ -26,17 +25,19 @@ class ProductType(db.Model):  # pylint: disable=too-few-public-methods
         id: 1
         name: Milk
         price: 1000
-        tags: 1, 2
+        seasonality: 10
         product_items: ProductItem1, ProductItem2
     """
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     price = db.Column(db.Integer)
+    seasonality = db.Column(db.Integer)
     tags = db.relationship('Tag', secondary=TAGS,
                            backref=db.backref('product_types', lazy='dynamic'),
                            lazy='dynamic')
     product_items = db.relationship('ProductItem', backref='product_type',
                                     lazy='dynamic')
+    lstms = db.relationship('LSTM', backref='product_type', lazy='dynamic')
 
 
 class ProductItem(db.Model):  # pylint: disable=too-few-public-methods
@@ -78,3 +79,32 @@ class Location(db.Model):  # pylint: disable=too-few-public-methods
     address = db.Column(db.String(100))
     latitude = db.Column(db.Float())
     longitude = db.Column(db.Float())
+    shops = db.relationship('Shop', backref='location', lazy='dynamic')
+    warehouses = db.relationship('Warehouse', backref='location',
+                                 lazy='dynamic')
+
+
+class Shop(db.Model):  # pylint: disable=too-few-public-methods
+    """ Class that contains Shop(Retail Point)"""
+    id = db.Column(db.Integer, primary_key=True)
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+    lstms = db.relationship('LSTM', backref='shop', lazy='dynamic')
+    fullness = db.Column(db.Integer)
+    capacity = db.Column(db.Integer)
+
+
+class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
+    """ Class that contains Warehouse"""
+    id = db.Column(db.Integer, primary_key=True)
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+    fullness = db.Column(db.Integer)
+    capacity = db.Column(db.Integer)
+
+
+class LSTM(db.Model):  # pylint: disable=too-few-public-methods
+    """ Class that contains LSTM."""
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    product_type_id = db.Column(db.Integer, db.ForeignKey('product_type.id'))
+    model = db.Column(db.Binary)
+    scope = db.Column(db.Binary)
