@@ -32,8 +32,7 @@ def create_type(query):
 
 def create_type_with_id(query, product_type_id):
     """ Function creates Product Type with id from query.
-            :param query: (dict) Example: { id: 1,
-                                            name:"milk",
+            :param query: (dict) Example: { name:"milk",
                                             price:1000,
                                             seasonality: 0,
                                           }
@@ -66,7 +65,7 @@ def create_item(query):
 
 def create_item_with_id(query, product_item_id):
     """ Function creates Product Item with id from query.
-            :param query: (dict) Example: {id: 1, product_type_id: 1, count:10}
+            :param query: (dict) Example: {product_type_id: 1, count:10}
             :param product_item_id: (int)
             :return ProductItem: Product Item object
         """
@@ -99,7 +98,7 @@ def create_group(query):
 
 def create_group_with_id(query, product_group_id):
     """ Function creates Product Group with id from query.
-            :param query: (dict) Example: {id: 1, product_items: [1, 2, 3]}
+            :param query: (dict) Example: {product_items: [1, 2, 3]}
             :param product_group_id: (int)
             :return ProductGroup: Product Group object
         """
@@ -132,7 +131,7 @@ def create_location(query):
 
 def create_location_with_id(query, location_id):
     """ Function creates Location with id from query.
-        :param query: (dict) Example: {id: 1,
+        :param query: (dict) Example: {
                                 address: "Yubileynaya Street, 13/2",
                                 latitude: 55.911905,
                                 longitude: 37.719328}
@@ -166,8 +165,7 @@ def create_warehouse(query):
 
 def create_warehouse_with_id(query, warehouse_id):
     """ Function creates Warehouse with id from query.
-        :param query: (dict) Example: { id: 1,
-                                        location_id: 1,
+        :param query: (dict) Example: { location_id: 1,
                                         fullness: 10,
                                         capacity: 20 }
         :param warehouse_id: (int)
@@ -199,8 +197,7 @@ def create_shop(query):
 
 def create_shop_with_id(query, shop_id):
     """ Function creates Warehouse with id from query.
-        :param query: (dict) Example: { id: 1,
-                                        location_id: 1,
+        :param query: (dict) Example: { location_id: 1,
                                         fullness: 10,
                                         capacity: 20 }
         :param shop_id: (int)
@@ -692,7 +689,7 @@ class ListLSTMsApi(Resource):
             :return: list[LSTM]
         """
         lstms = LSTM.query.all()
-        return {'LSTMs': [json_shop(LSTMs) for LSTMs in
+        return {'LSTMs': [json_lstm(lstm) for lstm in
                           lstms]}, 200
 
     @staticmethod
@@ -708,9 +705,9 @@ class ListLSTMsApi(Resource):
         if not request.json:
             abort(400, "No data")
         lstm = create_lstm(request.json)
-        db.session.add(LSTM)
+        db.session.add(lstm)
         db.session.commit()
-        return {'lstm': json_lstm(LSTM)}, 200
+        return {'lstm': json_lstm(lstm)}, 200
 
 
 class LSTMApi(Resource):
