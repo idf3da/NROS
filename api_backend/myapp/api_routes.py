@@ -740,11 +740,11 @@ class ListLSTMsApi(Resource):
         """ Create new LSTM
             Example LSTM post query:
             {
-                shop_id: 1,
-                product_type_id: 1
-                alpha: 0.1,
-                beta: 0.1,
-                gamma: 0.1
+                "shop_id": 1,
+                "product_type_id": 1
+                "alpha": 0.1,
+                "beta": 0.1,
+                "gamma": 0.1
             }
             :return: jsonifyed LSTM
         """
@@ -811,9 +811,9 @@ class ListSalesApi(Resource):
         """ Create new Sale
             Example sale post query:
             {
-                "sale_id": 1,
-                "fullness": 10,
-                "capacity": 20
+                "date": '2011-11-04 00:05:23',
+                "product_item_id": 10,
+                "shop_id": 20
             }
             :return: jsonifyed Sale
         """
