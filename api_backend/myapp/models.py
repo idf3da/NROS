@@ -55,6 +55,7 @@ class ProductItem(db.Model):  # pylint: disable=too-few-public-methods
     count = db.Column(db.Integer)
     product_type_id = db.Column(db.Integer, db.ForeignKey('product_type.id'))
     product_group_id = db.Column(db.Integer, db.ForeignKey('product_group.id'))
+    sale = db.relationship('Sale', backref='product_item', lazy='dynamic')
 
 
 class ProductGroup(db.Model):  # pylint: disable=too-few-public-methods
@@ -91,6 +92,7 @@ class Shop(db.Model):  # pylint: disable=too-few-public-methods
     lstms = db.relationship('LSTM', backref='shop', lazy='dynamic')
     fullness = db.Column(db.Integer)
     capacity = db.Column(db.Integer)
+    sales = db.relationship('Sale', backref='shop', lazy='dynamic')
 
 
 class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
@@ -99,6 +101,14 @@ class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
     fullness = db.Column(db.Integer)
     capacity = db.Column(db.Integer)
+
+
+class Sale(db.Model):  # pylint: disable=too-few-public-methods
+    """ Class that contains ProductItem Sale """
+    id = db.Column(db.Integer)
+    date = db.Column(db.DateTime)  # python datetime.datetime() object
+    product_item_id = db.Column(db.Integer, db.ForeignKey('product_item.id'))
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
 
 
 class LSTM(db.Model):  # pylint: disable=too-few-public-methods

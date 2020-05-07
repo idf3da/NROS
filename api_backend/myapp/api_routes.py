@@ -1,11 +1,12 @@
 """Module that routes api requests"""
+from datetime import datetime
 
 from flask import request, abort
 from flask_restful import Resource
 from myapp import api
 from myapp.__init__ import db
 from myapp.models import ProductType, ProductItem, ProductGroup, Location, \
-    Warehouse, Shop, LSTM
+    Warehouse, Shop, LSTM, Sale
 
 
 def json_type(product_type):
@@ -153,7 +154,7 @@ def json_warehouse(warehouse):
 
 
 def create_warehouse(query):
-    """ Function creates Location from query.
+    """ Function creates Warehouse from query.
         :param query: (dict) Example: { location_id: 1,
                                         fullness: 10,
                                         capacity: 20 }
@@ -185,7 +186,7 @@ def json_shop(shop):
 
 
 def create_shop(query):
-    """ Function creates Location from query.
+    """ Function creates Shop from query.
         :param query: (dict) Example: { location_id: 1,
                                         fullness: 10,
                                         capacity: 20 }
@@ -196,7 +197,7 @@ def create_shop(query):
 
 
 def create_shop_with_id(query, shop_id):
-    """ Function creates Warehouse with id from query.
+    """ Function creates Shop with id from query.
         :param query: (dict) Example: { location_id: 1,
                                         fullness: 10,
                                         capacity: 20 }
@@ -218,7 +219,7 @@ def json_lstm(lstm):
 
 
 def create_lstm(query):
-    """ Function creates Location from query.
+    """ Function creates LSTM from query.
         :param query: (dict) Example: { shop_id: 1,
                                         product_type_id: 1,
                                         alpha: 0.1,
@@ -248,6 +249,40 @@ def create_lstm_with_id(query, lstm_id):
     return LSTM(id=lstm_id, shop_id=query['shop_id'], product_type_id=query[
         'product_type_id'], alpha=query['alpha'], beta=query['beta'],
                 gamma=query['gamma'])
+
+
+def json_sale(sale):
+    """ Function converts Sale object into dictionary
+        :param sale: (Sale) Sale object
+        :return dict: dictionary containing converted Sale
+        """
+    return {'id': sale.id, 'date': sale.date,
+            'product_item_id': sale.product_item_id, 'shop_id': sale.shop_id}
+
+
+def create_sale(query):
+    """ Function creates Sale from query.
+        :param query: (dict) Example: { date: '2011-11-04 00:05:23',
+                                        product_item_id: 10,
+                                        shop_id: 20 }
+        :return Sale: Sale object
+    """
+    return Sale(date=datetime.fromisoformat(query['date']),
+                product_item_id=query['product_item_id'],
+                shop_id=query['shop_id'])
+
+
+def create_sale_with_id(query, sale_id):
+    """ Function creates Sale with id from query.
+        :param query: (dict) Example: { date: '2011-11-04 00:05:23',
+                                        product_item_id: 10,
+                                        shop_id: 20 }
+        :param sale_id: (int)
+        :return Sale: Sale object
+    """
+    return Sale(id=sale_id, date=datetime.fromisoformat(query['date']),
+                product_item_id=query['product_item_id'],
+                shop_id=query['shop_id'])
 
 
 class ListProductTypesApi(Resource):
@@ -486,8 +521,8 @@ class ListLocationsApi(Resource):
     @staticmethod
     def get():
         """ Method used to get list of all Locations
-                :return: list[Location]
-                """
+            :return: list[Location]
+        """
         locations = Location.query.all()
         return {'locations': [json_location(location) for location in
                               locations]}, 200
@@ -629,8 +664,7 @@ class ListShopsApi(Resource):
             :return: list[Shop]
         """
         shops = Shop.query.all()
-        return {'shops': [json_shop(shops) for shops in
-                          shops]}, 200
+        return {'shops': [json_shop(shops) for shops in shops]}, 200
 
     @staticmethod
     def post():
@@ -699,8 +733,7 @@ class ListLSTMsApi(Resource):
             :return: list[LSTM]
         """
         lstms = LSTM.query.all()
-        return {'LSTMs': [json_lstm(lstm) for lstm in
-                          lstms]}, 200
+        return {'LSTMs': [json_lstm(lstm) for lstm in lstms]}, 200
 
     @staticmethod
     def post():
@@ -762,6 +795,75 @@ class LSTMApi(Resource):
         return {'lstm': json_lstm(lstm)}, 201
 
 
+class ListSalesApi(Resource):
+    """ Class that gets all Sales or creates new """
+
+    @staticmethod
+    def get():
+        """ Method used to get list of all Sales
+            :return: list[Sale]
+        """
+        sales = Sale.query.all()
+        return {'sales': [json_sale(sales) for sales in sales]}, 200
+
+    @staticmethod
+    def post():
+        """ Create new Sale
+            Example sale post query:
+            {
+                "sale_id": 1,
+                "fullness": 10,
+                "capacity": 20
+            }
+            :return: jsonifyed Sale
+        """
+        if not request.json:
+            abort(400, "No data")
+        sale = create_sale(request.json)
+        db.session.add(sale)
+        db.session.commit()
+        return {'sale': json_sale(sale)}, 200
+
+
+class SaleApi(Resource):
+    """ Class that gets/updates/deletes Sale by id """
+
+    @staticmethod
+    def get(sale_id):
+        """ Get Sale by id
+            :param sale_id: (int)
+            :return Sale: Sale object
+        """
+        sale = Sale.query.get_or_404(sale_id)
+        return {'sale': json_sale(sale)}, 200
+
+    @staticmethod
+    def delete(sale_id):
+        """ Deletes Sale by id
+            :param sale_id: (int)
+            :return: empty html
+        """
+        sale = Sale.query.get_or_404(sale_id)
+        db.session.delete(sale)
+        db.session.commit()
+        return "", 200
+
+    @staticmethod
+    def put(sale_id):
+        """ Update/Create Sale by id
+            :param sale_id: (int)
+            :return: Sale: Sale object
+        """
+        if not request.json:
+            abort(400, "No data")
+        db.session.delete(Sale.query.get_or_404(sale_id))
+        db.session.commit()
+        sale = create_sale_with_id(request.json, sale_id)
+        db.session.add(sale)
+        db.session.commit()
+        return {'sale': json_sale(sale)}, 201
+
+
 api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
 api.add_resource(ProductItemsApi,
                  '/api/product_items/<int:product_item_id>')
@@ -771,6 +873,7 @@ api.add_resource(LocationApi, '/api/locations/<location_id>')
 api.add_resource(WarehouseApi, '/api/warehouses/<warehouse_id>')
 api.add_resource(ShopApi, '/api/shops/<shop_id>')
 api.add_resource(LSTMApi, '/api/lstms/<lstm_id>')
+api.add_resource(SaleApi, '/api/sales/<sale_id>')
 api.add_resource(ListProductTypesApi, '/api/product_types')
 api.add_resource(ListProductItemsApi, '/api/product_items')
 api.add_resource(ListProductGroupsApi, '/api/product_groups')
@@ -778,3 +881,4 @@ api.add_resource(ListLocationsApi, '/api/locations')
 api.add_resource(ListWarehousesApi, '/api/warehouses')
 api.add_resource(ListShopsApi, '/api/shops')
 api.add_resource(ListLSTMsApi, '/api/lstms')
+api.add_resource(ListSalesApi, '/api/sales')
