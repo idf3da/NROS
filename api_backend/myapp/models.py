@@ -105,7 +105,7 @@ class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
 
 class Sale(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains ProductItem Sale """
-    id = db.Column(db.Integer)
+    id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime)  # python datetime.datetime() object
     product_item_id = db.Column(db.Integer, db.ForeignKey('product_item.id'))
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
