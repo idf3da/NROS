@@ -256,7 +256,7 @@ def json_sale(sale):
         :param sale: (Sale) Sale object
         :return dict: dictionary containing converted Sale
         """
-    return {'id': sale.id, 'date': sale.date,
+    return {'id': sale.id, 'date': str(sale.date),
             'product_item_id': sale.product_item_id, 'shop_id': sale.shop_id}
 
 
@@ -804,7 +804,7 @@ class ListSalesApi(Resource):
             :return: list[Sale]
         """
         sales = Sale.query.all()
-        return {'sales': [json_sale(sales) for sales in sales]}, 200
+        return {'sales': [json_sale(sale) for sale in sales]}, 200
 
     @staticmethod
     def post():
