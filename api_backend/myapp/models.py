@@ -121,3 +121,4 @@ class LSTM(db.Model):  # pylint: disable=too-few-public-methods
     gamma = db.Column(db.Float)
     model = db.Column(db.PickleType)
     scope = db.Column(db.PickleType)
+    prediction = db.Column(db.Integer)

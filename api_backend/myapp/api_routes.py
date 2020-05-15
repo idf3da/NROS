@@ -1,8 +1,9 @@
 """Module that routes api requests"""
 from datetime import datetime
-
 from flask import request, abort
 from flask_restful import Resource
+from keras.backend import tensorflow_backend as tb  # ! костыль
+import utils
 from myapp import api
 from myapp.__init__ import db
 from myapp.models import ProductType, ProductItem, ProductGroup, Location, \
@@ -228,10 +229,18 @@ def create_lstm(query):
                                       }
         :return LSTM: LSTM object
     """
-    # тут как то нужно прогонять и создавать model и scope
+    before_range = query['before_range']
+    data = db.session.query(Sale).filter(Sale.shop_id == query[
+        'shop_id']).all()
+    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+    models = LSTM.query.filter(LSTM.shop_id == query['shop_id'],
+                               LSTM.product_type_id == query[
+                                   'product_type_id']).all()  # + user_id
+    alpha, beta, gamma, model, scaler = \
+        utils.trainModels(data, before_range, query['product_type_id'], models)
     return LSTM(shop_id=query['shop_id'], product_type_id=query[
-        'product_type_id'], alpha=query['alpha'], beta=query['beta'],
-                gamma=query['gamma'])
+        'product_type_id'], alpha=alpha, beta=beta,
+                gamma=gamma, model=model, scope=scaler)
 
 
 def create_lstm_with_id(query, lstm_id):
@@ -245,10 +254,18 @@ def create_lstm_with_id(query, lstm_id):
         :param lstm_id: (int)
         :return LSTM: LSTM object
     """
-    # тут как то нужно прогонять и создавать model и scope
+    before_range = query['before_range']
+    data = db.session.query(Sale).filter(Sale.shop_id == query[
+        'shop_id']).all()
+    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+    models = LSTM.query.filter(LSTM.shop_id == query['shop_id'],
+                               LSTM.product_type_id == query[
+                                   'product_type_id']).all()  # + user_id
+    alpha, beta, gamma, model, scaler = \
+        utils.trainModels(data, before_range, query['product_type_id'], models)
     return LSTM(id=lstm_id, shop_id=query['shop_id'], product_type_id=query[
-        'product_type_id'], alpha=query['alpha'], beta=query['beta'],
-                gamma=query['gamma'])
+        'product_type_id'], alpha=alpha, beta=beta,
+                gamma=gamma, model=model, scope=scaler)
 
 
 def json_sale(sale):
@@ -804,7 +821,7 @@ class ListSalesApi(Resource):
             :return: list[Sale]
         """
         sales = Sale.query.all()
-        return {'sales': [json_sale(sale) for sale in sales]}, 200
+        return {'sales': [json_sale(sales) for sales in sales]}, 200
 
     @staticmethod
     def post():
@@ -822,6 +839,7 @@ class ListSalesApi(Resource):
         sale = create_sale(request.json)
         db.session.add(sale)
         db.session.commit()
+        print(sale)
         return {'sale': json_sale(sale)}, 200
 
 
