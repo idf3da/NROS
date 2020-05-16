@@ -9,9 +9,9 @@
 	},
 	"dependencies": {
 		"@syncfusion/ej2-vue-charts": "^17.4.51",
+		"axios": "^0.19.2",
 		"chart.js": "^2.9.3",
 		"chartkick": "^3.2.0",
-		"axios": "^0.19.2",
 		"core-js": "^3.6.4",
 		"fusioncharts": "^3.15.1",
 		"google-maps-api-loader": "^1.1.1",
@@ -23,6 +23,7 @@
 		"vue-fusioncharts": "^3.0.4",
 		"vue-resource": "^1.5.1",
 		"vue-router": "^3.1.5",
+		"vue-yandex-maps": "^0.10.7",
 		"vuetify": "^2.2.11"
 	},
 	"devDependencies": {
