@@ -93,15 +93,16 @@ class Shop(db.Model):  # pylint: disable=too-few-public-methods
     fullness = db.Column(db.Integer)
     capacity = db.Column(db.Integer)
     sales = db.relationship('Sale', backref='shop', lazy='dynamic')
-
+    # minimum = db.Column(db.Integer)
+    # warehouse = db.relationship('Warehouse')
 
 class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains Warehouse"""
     id = db.Column(db.Integer, primary_key=True)
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
     fullness = db.Column(db.Integer)
-    capacity = db.Column(db.Integer)
-
+    capacity = db.Column(db.Integer) 
+    # shops = db.relationship("Shop", backref="warehouse", lazy='dynamic')
 
 class Sale(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains ProductItem Sale """
@@ -109,6 +110,8 @@ class Sale(db.Model):  # pylint: disable=too-few-public-methods
     date = db.Column(db.DateTime)  # python datetime.datetime() object
     product_item_id = db.Column(db.Integer, db.ForeignKey('product_item.id'))
     shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'))
+    # product_item = db.relationship("ProductItem",backref="classes")
+    # product_type_id = db.Column(db.Integer, db.ForeignKey('product_item.id')) #сука надо добавить я заебался писать через product_item
 
 
 class LSTM(db.Model):  # pylint: disable=too-few-public-methods
@@ -122,3 +125,4 @@ class LSTM(db.Model):  # pylint: disable=too-few-public-methods
     model = db.Column(db.PickleType)
     scope = db.Column(db.PickleType)
     prediction = db.Column(db.Integer)
+    before_range = db.Column(db.Integer)
