@@ -125,5 +125,5 @@ class LSTM(db.Model):  # pylint: disable=too-few-public-methods
     model = db.Column(db.PickleType)
     scope = db.Column(db.PickleType)
     prediction = db.Column(db.Integer)
-
-    # before_range = db.Column(db.Integer)
+    lstm_pred = db.Column(db.Integer)
+    before_range = db.Column(db.Integer)
