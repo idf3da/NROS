@@ -236,25 +236,34 @@ class Location(db.Model):  # pylint: disable=too-few-public-methods
     warehouses = db.relationship('Warehouse', backref='location',
                                  lazy='dynamic')
 
-
-class Shop(db.Model):  # pylint: disable=too-few-public-methods
-    """ Class that contains Shop(Retail Point)"""
+class Point(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
-    lstms = db.relationship('LSTM', backref='shop', lazy='dynamic')
+    lstms = db.relationship('LSTM', backref='point', lazy='dynamic')
     fullness = db.Column(db.Integer)
     capacity = db.Column(db.Integer)
+    minimum = db.Column(db.Integer)
+    shop = db.Column(db.Boolean)
     sales = db.relationship('Sale', backref='shop', lazy='dynamic')
-    # minimum = db.Column(db.Integer)
-    # warehouse = db.relationship('Warehouse')
 
-class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
-    """ Class that contains Warehouse"""
-    id = db.Column(db.Integer, primary_key=True)
-    location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
-    fullness = db.Column(db.Integer)
-    capacity = db.Column(db.Integer) 
-    # shops = db.relationship("Shop", backref="warehouse", lazy='dynamic')
+# class Shop(db.Model):  # pylint: disable=too-few-public-methods
+#     """ Class that contains Shop(Retail Point)"""
+#     id = db.Column(db.Integer, primary_key=True)
+#     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+#     lstms = db.relationship('LSTM', backref='shop', lazy='dynamic')
+#     fullness = db.Column(db.Integer)
+#     capacity = db.Column(db.Integer)
+#     sales = db.relationship('Sale', backref='shop', lazy='dynamic')
+#     # minimum = db.Column(db.Integer)
+#     # warehouse = db.relationship('Warehouse')
+
+# class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
+#     """ Class that contains Warehouse"""
+#     id = db.Column(db.Integer, primary_key=True)
+#     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+#     fullness = db.Column(db.Integer)
+#     capacity = db.Column(db.Integer) 
+#     # shops = db.relationship("Shop", backref="warehouse", lazy='dynamic')
 
 class Sale(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains ProductItem Sale """
