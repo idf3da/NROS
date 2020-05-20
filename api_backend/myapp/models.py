@@ -35,38 +35,8 @@ class ProductType(db.Model):  # pylint: disable=too-few-public-methods
     tags = db.relationship('Tag', secondary=TAGS,
                            backref=db.backref('product_types', lazy='dynamic'),
                            lazy='dynamic')
-    # product_items = db.relationship('ProductItem', backref='product_type',
-                                    # lazy='dynamic')
     lstms = db.relationship('LSTM', backref='product_type', lazy='dynamic')
 
-
-# class ProductItem(db.Model):  # pylint: disable=too-few-public-methods
-#     """ Class that contains Product Item, connected with Product Type,
-#     Product Groups.
-#         Example:
-#             id: 1
-#             count: 10
-#             product_type: ProductType1
-#             product_type_id: 1
-#             product_group: ProductGroup1
-#             product_group_id: 1
-#     """
-#     id = db.Column(db.Integer, primary_key=True)
-#     count = db.Column(db.Integer)
-#     product_type_id = db.Column(db.Integer, db.ForeignKey('product_type.id'))
-#     product_group_id = db.Column(db.Integer, db.ForeignKey('product_group.id'))
-#     sale = db.relationship('Sale', backref='product_item', lazy='dynamic')
-
-
-# class ProductGroup(db.Model):  # pylint: disable=too-few-public-methods
-#     """ Class that contains Product Group, connected with Product Items.
-#         Example:
-#             id: 1
-#             product_items: ProductItem1, ProductItem2
-#     """
-#     id = db.Column(db.Integer, primary_key=True)
-#     product_items = db.relationship('ProductItem', backref='product_group',
-#                                     lazy='dynamic')
 
 
 class Location(db.Model):  # pylint: disable=too-few-public-methods
@@ -94,24 +64,6 @@ class Point(db.Model):
     shop = db.Column(db.Boolean)
     sales = db.relationship('Sale', backref='shop', lazy='dynamic')
 
-# class Shop(db.Model):  # pylint: disable=too-few-public-methods
-#     """ Class that contains Shop(Retail Point)"""
-#     id = db.Column(db.Integer, primary_key=True)
-#     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
-#     lstms = db.relationship('LSTM', backref='shop', lazy='dynamic')
-#     fullness = db.Column(db.Integer)
-#     capacity = db.Column(db.Integer)
-#     sales = db.relationship('Sale', backref='shop', lazy='dynamic')
-#     # minimum = db.Column(db.Integer)
-#     # warehouse = db.relationship('Warehouse')
-
-# class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
-#     """ Class that contains Warehouse"""
-#     id = db.Column(db.Integer, primary_key=True)
-#     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
-#     fullness = db.Column(db.Integer)
-#     capacity = db.Column(db.Integer) 
-#     # shops = db.relationship("Shop", backref="warehouse", lazy='dynamic')
 
 class Sale(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains ProductItem Sale """
