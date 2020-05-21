@@ -11,38 +11,48 @@ from sklearn.metrics import mean_squared_error
 import math
 import random
 import pickle
+import time
 
 # import keras.backend.tensorflow_backend as tb
 # tb._SYMBOLIC_SCOPE.value = True
 
 # from scipy.optimize import fmin
 
-def trainModels(inData,before_range,type_id,models,slen = 0):
+def trainModelsAndPredict(inData,before_range,model,slen = 0):
     # print(data['Quantity'] != data['Quantity'].min())
     data = pd.DataFrame(columns = {'Quantity','date'})
     # print(type_id)
     for sale in inData:
-        if sale.product_item.product_type_id == type_id: 
-            data = data.append({'Quantity':sale.product_item.count,'date':sale.date}, ignore_index=True)
+        # if sale.product_item.product_type_id == type_id: 
+        data = data.append({'Quantity':int(sale[1]),'date':sale[0]}, ignore_index=True)
     # for i in inData:
     #     data = data.append({'Quantity':i[-1].count,'date':i[0].date}, ignore_index=True)
 
     data = data.set_index(['date'])
-    data = data['Quantity'].resample('D').sum()
+    # print(type(slen))
+    # print(data,len(data))
+    # print(data)
+    # data = data['Quantity'].resample('D').sum()
+    # if slen < len(data):
+    #     slen = len(data)//3
     # print(data)
     # slen = len(data[data != min(data)]) 
     # slen = 1 #для теста
     if slen == 0:
         a,b,g = -1,-1,-1
+        prediction = 0
     else:
         a,b,g = train(data,slen)
-        prediction = predict_rare(data,a,b,g,slen)
+        prediction = predict_rare(data.values,a,b,g,slen)
     # if slen <= (len(data)*7)//10:
     #     a,b,g = train(data,slen)
     # else:
     #     a,b,g = -1,-1,-1
-    model,scaler = trainLSTM(data,do_scale = True,epochs = 100,batch = 32,verbose = 0,before_range = before_range,models = models)
-    return a,b,g,model,scaler,prediction
+    print(before_range)
+    model,scaler,before_range = trainLSTM(data,do_scale = True,epochs = 100,batch = 32,verbose = 0,before_range = before_range,modelI = model)
+    print(before_range)
+    lstm_pred = int(predict_sales(inData[-(before_range + 1):],before_range = before_range + 1,scaler = scaler,model = model)[0][0])
+    return a,b,g,model,scaler,int(prediction[0][0]),before_range,lstm_pred
     
 class HoltWinters:
     def __init__(self, series, slen, alpha, beta, gamma, n_preds, scaling_factor=1.96):
@@ -63,8 +73,12 @@ class HoltWinters:
     def initial_seasonal_components(self):
         seasonals = {}
         season_averages = []
+        # print(len(self.series),'lenSeries',self.slen)
         n_seasons = int(len(self.series)/self.slen)
+        # print(type(self.slen))
         for j in range(n_seasons):
+            # print(self.slen*j,self.slen,type(self.slen*j),type(self.slen))
+            # print(type(self.series[self.slen*j:self.slen*j+self.slen]))
             season_averages.append(sum(self.series[self.slen*j:self.slen*j+self.slen])/float(self.slen))
         for i in range(self.slen):
             sum_of_vals_over_avg = 0.0
@@ -142,9 +156,14 @@ def timeseriesCVscore(x,data,slen):
 
     # задаём число фолдов для кросс-валидации
     tscv = TimeSeriesSplit(n_splits=2) 
-
+    # print()
     # идем по фолдам, на каждом обучаем модель, строим прогноз на отложенной выборке и считаем ошибку
+    # print(len(values))
+    # print(tscv)
     for train, test in tscv.split(values):
+        # print('lenTrain',len(values[train]))
+        # print('lenTest',len(values[test]))
+        # print('slen',slen)
         model = HoltWinters(series=values[train], slen = slen, alpha=alpha, beta=beta, gamma=gamma, n_preds=len(test))
         model.triple_exponential_smoothing()
 
@@ -180,12 +199,12 @@ def transform_data_train(resC,before_range):
     df_model = df_supervised.drop(['Quantity','date'],axis=1)
     # print(df_model)
     return df_model
-def scale_train(train_set,models):
-    if models == []:
+def scale_train(train_set,model):
+    if model == None:
         scaler = MinMaxScaler(feature_range=(-1, 1))
         scaler = scaler.fit(train_set)
     else:
-        scaler = pickle.loads(models[0].scope)
+        scaler = pickle.loads(model.scope)
     train_set_scaled = scaler.transform(train_set)
     return train_set_scaled,scaler
 
@@ -205,37 +224,39 @@ def compile_LSTM_model(shape,params = {}):
         model.compile(loss='mean_squared_error', optimizer='adam')
     return model
 
-def trainLSTM(data,models,do_scale = True,epochs = 100,batch = 32,verbose = 0,before_range = 5):
-    if models != []:
-        model = pickle.loads(models[0].model)
+def trainLSTM(data,modelI,do_scale = True,epochs = 100,batch = 32,verbose = 0,before_range = 5):
+    if modelI != None:
+        model = pickle.loads(modelI.model)
         if before_range == None:
-            before_range = model.layers[0].input_shape[1] + 1
+            before_range = model.layers[0].input_shape[1] + 2
     data = transform_data_train(data,before_range)
-    print(data)
+    print(data,'train')
     train_set = data.values
     if do_scale:
-        train_set, scaler = scale_train(train_set,models)
+        train_set, scaler = scale_train(train_set,modelI)
 
     X_train, y_train = convertToTrain(train_set if do_scale else np.array(train_set))
-    if models == []:
+    if modelI == None:
         model = compile_LSTM_model(X_train.shape)
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch, verbose=verbose, shuffle=False)
     K.clear_session()
     if do_scale:
-        return pickle.dumps(model),pickle.dumps(scaler)
-    return pickle.dumps(model),pickle.dumps(scaler)
+        return pickle.dumps(model),pickle.dumps(scaler),before_range
+    return pickle.dumps(model),before_range
 
 def predictWinters(data,alpha_final,beta_final,gamma_final,slen,n_preds,scaling_factor):
+    print(data,len(data),'dataWinters')
     model = HoltWinters(data, slen = slen, alpha = alpha_final, beta = beta_final, gamma = gamma_final, n_preds = n_preds,scaling_factor = scaling_factor)
     model.triple_exponential_smoothing()
-    return model.result[len(data):]
+    return model.result[-n_preds:]
 
 def predict_rare(data,a,b,g,slen,step = False,n_preds = 1,scaling_factor = 2.5):
-    res = predictWinters(data,a,b,g,slen,n_preds,scaling_factor)
     if step:
-        tres = predictWinters(step,a,b,g,slen,len(step),scaling_factor)
-        return [res,tres,step]
-    return [res]
+        tres = predictWinters(step,a,b,g,slen,n_preds,scaling_factor)
+        return [tres,step[-n_preds:]]
+    else:
+        res = predictWinters(data,a,b,g,slen,n_preds,scaling_factor)
+        return [res]
 
 class Population:
 
@@ -333,6 +354,18 @@ class NSGA2Utils:
                 self.problem.calculate_objectives(individual)
                 population.append(individual)
         return population
+
+    # def create_initial_population(self):
+    #     population = Population()
+    #     for _ in range(self.num_of_individuals):
+    #         for i in self.problem.extend_vars:
+    #             individual = self.problem.generate_individual(i['war'].id,i['shop'].id,[random.randint(*x) for x in self.problem.variables_range])
+    #             self.problem.calculate_objectives(individual)
+    #             population.append(individual)
+    #     return population
+
+
+
 
     def fast_nondominated_sort(self, population):
         population.fronts = [[]]
@@ -465,13 +498,16 @@ class Evolution:
 
     def evolve(self):
         self.population = self.utils.create_initial_population()
-        # print(self.population,'pop')
+        for ind in self.population.population:
+            print(ind.features,ind.objectives,'pop')
+        # print(self.population.population,'pop')
         self.utils.fast_nondominated_sort(self.population)
         for front in self.population.fronts:
             self.utils.calculate_crowding_distance(front)
         children = self.utils.create_children(self.population)
         returned_population = None
         for i in range(self.num_of_generations):
+            print(i)
             self.population.extend(children)
             self.utils.fast_nondominated_sort(self.population)
             new_population = Population()
@@ -480,7 +516,6 @@ class Evolution:
                 self.utils.calculate_crowding_distance(self.population.fronts[front_num])
                 new_population.extend(self.population.fronts[front_num])
                 front_num += 1
-            print('leave_while')
             self.utils.calculate_crowding_distance(self.population.fronts[front_num])
             self.population.fronts[front_num].sort(key=lambda individual: individual.crowding_distance, reverse=True)
             new_population.extend(self.population.fronts[front_num][0:self.num_of_individuals-len(new_population)])
@@ -495,41 +530,12 @@ class Evolution:
 
 
 def transform_data(resC,before_range,stepGL = False):
-    # before_range -= 2
-    # print(resC,'resC')
-    # print(before_range)
-    # print(resC)
-    data = pd.DataFrame(columns = {'Quantity','date'})
-    # print(type_id)
-    for i in resC:
-        # print(i)
-        data = data.append({'Quantity':i[1],'date':i[0]}, ignore_index=True)
-    # print(data,before_range)
-    # print(data)
-    resC = data.reset_index()
-    daily_data = resC.copy()
-    resC.append = 0
-    resC['prev_sales'] = resC['Quantity'].shift(-1) #name
-    # resC = resC.dropna()
-    # print(resC)
-    resC['diff'] = (resC['Quantity'] - resC['prev_sales']) #name
-    # print(resC)
-    df_supervised = resC.drop(['prev_sales'],axis=1)
-    # print(df_supervised)
-    for inc in range(1,before_range-1):
-        # print(df_supervised,'super1')
-        field_name = 'lag_' + str(inc)
-        df_supervised[field_name] = df_supervised['diff'].shift(-inc)
-        # print(df_supervised,'super2')
-    df_supervised = df_supervised.dropna().reset_index(drop=True)
-    df_model = df_supervised.drop(['Quantity','date','index'],axis=1)
-    # print(df_model,'df_model')
-    # print(daily_data.loc[len(daily_data)-1,'Quantity'])
     if stepGL:
         data = pd.DataFrame(columns = {'Quantity','date'})
         # print(stepGL,'stepGL')
         for sale in stepGL:
             data = data.append({'Quantity':sale[1],'date':sale[0]}, ignore_index=True)
+        daily_data = data.copy()
         resC = data.reset_index()
         resC.append = 0
         resC['prev_sales'] = resC['Quantity'].shift(-1) #name
@@ -546,12 +552,43 @@ def transform_data(resC,before_range,stepGL = False):
             # print(df_supervised,'super2')
         df_supervised = df_supervised.dropna().reset_index(drop=True)
         step = df_supervised.drop(['Quantity','date','index'],axis=1)
-        # print(step,'step_after')
-        return df_model,daily_data.loc[0,'Quantity'],step,data.loc[:,'Quantity']
-    # only_lag = df_model[-before_range:]
-#     print(daily_data.values[-2-step:-1,1])
-    # print(daily_data)
-    return df_model,daily_data.loc[0,'Quantity']
+        # print(step,'step_after',len(step))
+        return daily_data.loc[0,'Quantity'],step,data.loc[len(data)-len(step):,'Quantity']
+    else:
+        # before_range -= 2
+        # print(resC,'resC')
+        # print(before_range)
+        # print(resC)
+        data = pd.DataFrame(columns = {'Quantity','date'})
+        # print(type_id)
+        for i in resC:
+            # print(i)
+            data = data.append({'Quantity':i[1],'date':i[0]}, ignore_index=True)
+        # print(data,before_range)
+        # print(data)
+        resC = data.reset_index()
+        daily_data = resC.copy()
+        resC.append = 0
+        resC['prev_sales'] = resC['Quantity'].shift(-1) #name
+        # resC = resC.dropna()
+        # print(resC)
+        resC['diff'] = (resC['Quantity'] - resC['prev_sales']) #name
+        # print(resC)
+        df_supervised = resC.drop(['prev_sales'],axis=1)
+        # print(df_supervised)
+        for inc in range(1,before_range-1):
+            # print(df_supervised,'super1')
+            field_name = 'lag_' + str(inc)
+            df_supervised[field_name] = df_supervised['diff'].shift(-inc)
+            # print(df_supervised,'super2')
+        df_supervised = df_supervised.dropna().reset_index(drop=True)
+        df_model = df_supervised.drop(['Quantity','date','index'],axis=1)
+        # print(df_model,'df_model')
+        # print(daily_data.loc[len(daily_data)-1,'Quantity'])
+        # only_lag = df_model[-before_range:]
+    #     print(daily_data.values[-2-step:-1,1])
+        # print(daily_data)
+        return df_model,daily_data.loc[0,'Quantity']
 
 #!!!!!!!!!!!!!!!!!!!model.layers[0].input_shape[1]!!!!!!!!!!!!!!!!!!
 
@@ -626,10 +663,10 @@ def get_quantity(last_quantity,only_lag):
     
 
     
-def predict_sales(data,scaler,model,step = False,predict_range = 1,do_scale = True,epochs = 100,batch = 32,verbose = 0,before_range = 5):
-    # print(step.__class__.__name__)
+def predict_sales(data,scaler,model,step = False,predict_range = 1,do_scale = True,batch = 32,before_range = 5):
+    # print(data,'data')
     if step:
-        only_lag,last_quantity,step,stepQ = transform_data(data,before_range,step)
+        last_quantity,step,stepQ = transform_data(data,before_range,step)
     else:
         only_lag,last_quantity = transform_data(data,before_range)
     scaler,model = pickle.loads(scaler),pickle.loads(model)
@@ -639,23 +676,35 @@ def predict_sales(data,scaler,model,step = False,predict_range = 1,do_scale = Tr
 #     print(data[0:-1])
 #     print(data.loc[len(data)-1],data[-1-step:-1])
     # print(only_lag.values,'vls')
-    pred_set = only_lag.values
-
+    if step.__class__.__name__ == 'bool':
+        pred_set = only_lag.values
+    # print(only_lag)
     # train_set = data[0:-1].values
+    # print(only_lag)
     if step.__class__.__name__ != 'bool':
+        # print(step,'step')
+        # print('step')
         test_set = step.values
 
     if do_scale:
         # train_set, scaler = scale_train(train_set)
-        pred_set = scale_test(pred_set,scaler)
+        if step.__class__.__name__ == 'bool':
+            pred_set = scale_test(pred_set,scaler)
+        # print(step.__class__.__name__,step.__class__.__name__ != 'bool')
+        # print(step,'step')
+        # print('step')
         if step.__class__.__name__ != 'bool':
+            # print(step.__class__.__name__,step.__class__.__name__ != 'bool')
+            # print(step,'step')
+            # print('step')
             test_set = scale_test(test_set,scaler)
             
 #     print(train_set)
     # X_train, y_train = convertToTrain(train_set if do_scale else np.array(train_set))
 #     print(X_train)
-    X_pred = convertToPred(pred_set if do_scale else np.array(pred_set))
-    if step.__class__.__name__ != 'bool':
+    if step.__class__.__name__ == 'bool':
+        X_pred = convertToPred(pred_set if do_scale else np.array(pred_set))
+    else:#if step.__class__.__name__ != 'bool':
         X_test = convertToTest(test_set if do_scale else np.array(test_set))
         
     # model = compile_LSTM_model(X_train.shape)
@@ -664,7 +713,7 @@ def predict_sales(data,scaler,model,step = False,predict_range = 1,do_scale = Tr
 #     print(model.layers[0].output_shape,model.layers[0].input_shape[1])
 #     print(model.summary())
     # print(only_lag)
-    if predict_range > 1:
+    if predict_range > 1 and step.__class__.__name__ == 'bool':
         for i in range(predict_range):
             res = predict_next_day(X_pred,model,batch)
             # print(res)
@@ -685,19 +734,20 @@ def predict_sales(data,scaler,model,step = False,predict_range = 1,do_scale = Tr
         only_lag = only_lag[-predict_range-1:-1]
         quantity = get_quantity(last_quantity,only_lag['diff'])
     else:
-        res = predict_next_day(X_pred,model,batch)
-        if do_scale:
-            res = scaler.inverse_transform([res])[0]
-        # print(res)
-        # only_lag.loc[len(only_lag)] = res
-        # print(only_lag,'lag')
-        # to_train = shift(only_lag,before_range)
-        # print(to_train,'to_train')
-        # only_lag = only_lag[-predict_range-1:-1]
+        if step.__class__.__name__ == 'bool':
+            res = predict_next_day(X_pred,model,batch)
+            if do_scale:
+                res = scaler.inverse_transform([res])[0]
+            # print(res)
+            # only_lag.loc[len(only_lag)] = res
+            # print(only_lag,'lag')
+            # to_train = shift(only_lag,before_range)
+            # print(to_train,'to_train')
+            # only_lag = only_lag[-predict_range-1:-1]
 
-        only_lag = res
+            only_lag = res
 
-        quantity = get_quantity(last_quantity,[only_lag[0]])
+            quantity = get_quantity(last_quantity,[only_lag[0]])
     # print(quantity)
 
     if step.__class__.__name__ != 'bool':
@@ -726,7 +776,8 @@ def predict_sales(data,scaler,model,step = False,predict_range = 1,do_scale = Tr
 #         print(type(full_test_quantity_y[0]),type(prediction))
 #         print(full_test_quantity_y[1:],test_quantity)
         K.clear_session()
-        return [quantity, test_quantity, stepQ.values]
+        # print(test_quantity,stepQ.values,'res')
+        return [test_quantity, stepQ.values]
     K.clear_session()
     return [quantity]
 
@@ -785,17 +836,18 @@ def f1_1(sendCount,skN,magN,extend_vars):
         if i['war'].id == int(skN) and i['shop'].id == int(magN):
             # for j in i['shops']:
                 # if j[0] == int(magN):
-            before_range = i['before_range']
-            data = i['sales']
-            # steps = i['steps']
-            slen = i['slen']
-            if i['model'].alpha == 0:#-1
-                scaler = i['model'].scope
-                model = i['model'].model
-                spros = float(predict_sales(data, epochs = 1,before_range = before_range,scaler = scaler,model = model)[0][0])
-            else:
-                resR = i['model'].prediction #predict_rare(data,i['model'].alpha,i['model'].beta,i['model'].gamma,slen)
-            if CheckSendCount(sendCount,minimum,i['shop'].capacity,spros,i['shop'].fullness): #i['shop'].minimum
+            # before_range = i['before_range']
+            # data = i['sales']
+            # # steps = i['steps']
+            # slen = i['slen']
+            # if i['model'].alpha == 0:#-1
+            #     scaler = i['model'].scope
+            #     model = i['model'].model
+            #     spros = float(predict_sales(data, epochs = 1,before_range = before_range,scaler = scaler,model = model)[0][0])
+            # else:
+            #     spros = i['model'].prediction #predict_rare(data,i['model'].alpha,i['model'].beta,i['model'].gamma,slen)
+            spros = i['spros']
+            if CheckSendCount(sendCount,i['shop'].minimum,i['shop'].capacity,spros,i['shop'].fullness): #i['shop'].minimum
                 res+=price*min(spros,(i['shop'].fullness+sendCount)) #pop[i['sklad']][j[0]][1])
                 # result.append([j[0],res])
 #     print(res)
@@ -815,22 +867,15 @@ def f2_1(sendCount,skN,magN,extend_vars):
         if i['war'].id == int(skN) and i['shop'].id == int(magN):
             # for j in i['shops']:
             #     if j[0] == int(magN):
-            before_range = i['before_range']
-            data = i['sales']
-            steps = i['steps']
-            slen = i['slen']
-            if i['model'].alpha == 0:
-                scaler = i['model'].scope
-                model = i['model'].model
-                contRes = predict_sales(data,step = steps, epochs = 1,before_range = before_range,scaler = scaler,model = model)
-                spros,listForvector,realSpros = float(contRes[0][0]),contRes[1],contRes[2]
-            else:
-                resR = predict_rare(i['year'],i['model'].alpha,i['model'].beta,i['model'].gamma,slen,steps)
-                spros,listForvector,realSpros = float(resR[0]),resR[1],resR[2]
+            # before_range = i['before_range']
+            # data = i['sales']
+            # steps = i['steps']
+            # slen = i['slen']
+            spros,listForvector,realSpros = i['spros'],i['listForvector'],i['realSpros']
 
-            if CheckSendCount(sendCount,minimum,i['shop'].capacity,spros,i['shop'].fullness): #i['shop'].minimum
+            if CheckSendCount(sendCount,i['shop'].minimum,i['shop'].capacity,spros,i['shop'].fullness): #i['shop'].minimum
                 RNDVector = [(listForvector[gg] - realSpros[gg])/realSpros[gg] if realSpros[gg]!=0 else 0 for gg in range(len(realSpros))]
-                res += (-1*funcE(np.minimum([0],[sendCount+i['shop'].fullness - (1+randomVector)*spros-minimum  for randomVector in RNDVector])))+(funcE(np.maximum([0],[sendCount+i['shop'].fullness - (1+randomVector)*spros-i['shop'].capacity  for randomVector in RNDVector])))
+                res += (-1*funcE(np.minimum([0],[sendCount+i['shop'].fullness - (1+randomVector)*spros-i['shop'].minimum  for randomVector in RNDVector])))+(funcE(np.maximum([0],[sendCount+i['shop'].fullness - (1+randomVector)*spros-i['shop'].capacity  for randomVector in RNDVector])))
                 # result.append([j[0],res])
     return res
 def f2_2(send,extend_vars):
@@ -848,29 +893,29 @@ def f2_2(send,extend_vars):
             predSum = 0
             for j in extend_vars:
                 if j['shop'].id == int(send[3]):
-                    before_range = j['before_range']
-                    # print(before_range)
-                    data = j['sales']
-                    # print('dddd')
-                    # print(data)
-                    # print(data,'f22')
-                    # steps = i['steps']
-                    slen = j['slen']
-                    # print(slen)
-                    if j['model'].alpha == 0:
-                        scaler = j['model'].scope
-                        model = j['model'].model
-                        spros = float(predict_sales(data, epochs = 1,before_range = before_range,scaler = scaler,model = model)[0][0])
-                    else:
-                        resR = j['model'].prediction#predict_rare(data,j['model'].alpha,j['model'].beta,j['model'].gamma,slen)
+                    # before_range = j['before_range']
+                    # # print(before_range)
+                    # data = j['sales']
+                    # # print('dddd')
+                    # # print(data)
+                    # # print(data,'f22')
+                    # # steps = i['steps']
+                    # slen = j['slen']
+                    # # print(slen)
+                    # if j['model'].alpha == 0:
+                    #     scaler = j['model'].scope
+                    #     model = j['model'].model
+                    #     spros = float(predict_sales(data, epochs = 1,before_range = before_range,scaler = scaler,model = model)[0][0])
+                    # else:
+                    #     spros = j['model'].prediction#predict_rare(data,j['model'].alpha,j['model'].beta,j['model'].gamma,slen)
+                    spros = i['spros']
 
-
-                    if CheckSendCount(send[1],minimum,j['shop'].capacity,spros,j['shop'].fullness):
+                    if CheckSendCount(send[1],i['shop'].minimum,j['shop'].capacity,spros,j['shop'].fullness):
                         skladSumCount += send[1]
                         predSum += spros
         #                 result.append([i,j,predSum,skladSumCount])
-            if CheckZakupkaCount(send[0],minimum,i['war'].capacity,predSum,i['war'].fullness): #i['war'].minimum
-                res += -min(0,(i['war'].fullness + send[0] - skladSumCount - minimum)) + max(0,(i['war'].fullness + send[0] - skladSumCount - i['war'].capacity))
+            if CheckZakupkaCount(send[0],i['shop'].minimum,i['war'].capacity,predSum,i['war'].fullness): #i['war'].minimum
+                res += -min(0,(i['war'].fullness + send[0] - skladSumCount - i['shop'].minimum)) + max(0,(i['war'].fullness + send[0] - skladSumCount - i['war'].capacity))
                 # result.append([i['sklad'],res])
     return res
 
@@ -896,9 +941,10 @@ def f1(send,extend_vars):
 
 def main_prediction(full):
     # print(full)
-
-
+    start = time.time()
+    print('start')
     problem = Problem(num_of_variables=2, objectives=[f1, f2], variables_range=[(0, 1000),(0, 1000)],expand = False,extend_vars = full)
-    evo = Evolution(problem,mutation_param=8,num_of_generations = 10,num_of_individuals = 10,tournament_prob = 0.8,crossover_param = 9,crossover_probability = 0.9,mutation_probability = 0.25)
+    evo = Evolution(problem,mutation_param=8,num_of_generations = 100,num_of_individuals = 100,tournament_prob = 0.8,crossover_param = 9,crossover_probability = 0.9,mutation_probability = 0.25)
     func = [[i.objectives,i.features] for i in evo.evolve()]
+    print(func,time.time() - start)
     return func
