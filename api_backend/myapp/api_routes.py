@@ -1,21 +1,18 @@
 """Module that routes api requests"""
 import datetime
-
-import sqlalchemy as sa
-
-
-
+import hashlib
 import pickle
 
+import keras.backend.tensorflow_backend as tb  # ! костыль
 from flask import request, abort
 from flask_restful import Resource
 from myapp import api
 from myapp.__init__ import db
+from myapp.consts import Consts
 from myapp.models import ProductType, ProductItem, ProductGroup, Location, \
-    Warehouse, Shop, LSTM, Sale
-import utils
+    Warehouse, Shop, LSTM, Sale, User
+from myapp.utils import Utils
 
-import keras.backend.tensorflow_backend as tb #! костыль
 
 def json_type(product_type):
     """Function converts product_type object into dictionary
@@ -241,16 +238,17 @@ def create_lstm(query):
         before_range = query['before_range'] + 1
     data = Sale.query.filter(Sale.shop_id == query['shop_id']).all()
     # print(data)
-    tb._SYMBOLIC_SCOPE.value = True #! костыль
-    models = LSTM.query.filter(LSTM.shop_id == query['shop_id'],LSTM.product_type_id==query['product_type_id']).all() #+user_id
+    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+    models = LSTM.query.filter(LSTM.shop_id == query['shop_id'],
+                               LSTM.product_type_id == query['product_type_id']).all()  # +user_id
     if models == []:
         slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
     else:
         slen = models[0].product_type.seasonality
-    a,b,g,model,scaler,prediction = utils.trainModels(data,before_range,query['product_type_id'],models,slen)
+    a, b, g, model, scaler, prediction = utils.trainModels(data, before_range, query['product_type_id'], models, slen)
     return LSTM(shop_id=query['shop_id'], product_type_id=query[
         'product_type_id'], alpha=a, beta=b,
-                gamma=g,model = model,scope = scaler,prediction = prediction[0][0])
+                gamma=g, model=model, scope=scaler, prediction=prediction[0][0])
 
 
 def create_lstm_with_id(query, lstm_id):
@@ -268,16 +266,17 @@ def create_lstm_with_id(query, lstm_id):
     if 'before_range' in query:
         before_range = query['before_range'] + 1
     data = Sale.query.filter(Sale.shop_id == query['shop_id']).all()
-    tb._SYMBOLIC_SCOPE.value = True #! костыль
-    models = LSTM.query.filter(LSTM.shop_id == query['shop_id'],LSTM.product_type_id==query['product_type_id']).all() #+user_id
+    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+    models = LSTM.query.filter(LSTM.shop_id == query['shop_id'],
+                               LSTM.product_type_id == query['product_type_id']).all()  # +user_id
     if models == []:
         slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
     else:
         slen = models[0].product_type.seasonality
-    a,b,g,model,scaler,prediction = utils.trainModels(data,before_range,query['product_type_id'],models,slen)
+    a, b, g, model, scaler, prediction = utils.trainModels(data, before_range, query['product_type_id'], models, slen)
     return LSTM(id=lstm_id, shop_id=query['shop_id'], product_type_id=query[
-        'product_type_id'],alpha=a, beta=b,
-                gamma=g,model = model,scope = scaler,prediction = prediction[0][0])
+        'product_type_id'], alpha=a, beta=b,
+                gamma=g, model=model, scope=scaler, prediction=prediction[0][0])
 
 
 def json_sale(sale):
@@ -314,10 +313,8 @@ def create_sale_with_id(query, sale_id):
                 shop_id=query['shop_id'])
 
 
-
-
 def make_prediction(query):
-    tb._SYMBOLIC_SCOPE.value = True #! костыль
+    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
 
     # warLen = 5
     # shopLen = 10
@@ -330,7 +327,7 @@ def make_prediction(query):
     #     sklads.append({i:[shops]})
     # print(sklads)
     stepG = query['step']
-    models = LSTM.query.filter(LSTM.product_type_id==query['product_type_id']).all() #пока всё
+    models = LSTM.query.filter(LSTM.product_type_id == query['product_type_id']).all()  # пока всё
     slen = ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality
     full = []
     # print(ProductItem.query)
@@ -338,8 +335,8 @@ def make_prediction(query):
         # print(pickle.loads(i.model).layers[0].input_shape)
         # model = pickle.loads(i.model)
         # test_shape = 2
-        #pickle.loads(i.model).layers[0].input_shape[1]
-        before_range = pickle.loads(i.model).layers[0].input_shape[-1] + 2 #i.before_range
+        # pickle.loads(i.model).layers[0].input_shape[1]
+        before_range = pickle.loads(i.model).layers[0].input_shape[-1] + 2  # i.before_range
         # print(model.layers[0].input_shape)
 
         sales = db.engine.execute('''
@@ -353,7 +350,8 @@ def make_prediction(query):
         FROM sale,product_item
         WHERE sale.shop_id = {0} AND product_item.product_type_id = {1}
         GROUP BY 1 ORDER BY 1 DESC LIMIT {2}
-        '''.format(i.shop_id, query['product_type_id'], stepG + before_range-1 if stepG >= before_range - 2 else before_range + 3)).fetchall()
+        '''.format(i.shop_id, query['product_type_id'],
+                   stepG + before_range - 1 if stepG >= before_range - 2 else before_range + 3)).fetchall()
         # print(step)
         year = db.engine.execute('''
         SELECT sale.date::date, sum(product_item.count)
@@ -362,12 +360,26 @@ def make_prediction(query):
         GROUP BY 1 ORDER BY 1 DESC LIMIT {2}
         '''.format(i.shop_id, query['product_type_id'], 365)).fetchall()
         # print(sales)
-        #war_id = Warhouse.query.filter(Warhouse.shop.id == models[i].shop_id).all()[0].id
-        
+        # war_id = Warhouse.query.filter(Warhouse.shop.id == models[i].shop_id).all()[0].id
+
         war_id = 1
-        full.append({'sales' : sales, 'model':i, 'shop' : Shop.query.filter(Shop.id == i.shop_id).first(), 'war' : Warehouse.query.filter(Warehouse.id == war_id).first(),'before_range':before_range,'steps':steps,'slen':slen,'year':year})
+        full.append({'sales': sales, 'model': i, 'shop': Shop.query.filter(Shop.id == i.shop_id).first(),
+                     'war': Warehouse.query.filter(Warehouse.id == war_id).first(), 'before_range': before_range,
+                     'steps': steps, 'slen': slen, 'year': year})
         # print(full[-1])
     return utils.main_prediction(full)
+
+
+def create_user(name, email, password_hash, privilege_level, token):
+    """ Function creates User from query.
+        :param name: (string)
+        :param email: (string)
+        :param password_hash: (string)
+        :param privilege_level: (int)
+        :param token: (string)
+    """
+    return User(name=name, email=email, password_hash=password_hash, privilege_level=1, token=token)
+
 
 class ListProductTypesApi(Resource):
     """ Class that gets all Product Types or creates new """
@@ -948,6 +960,7 @@ class SaleApi(Resource):
         db.session.commit()
         return {'sale': json_sale(sale)}, 201
 
+
 class PredictApi(Resource):
     """ Class that make predictions """
 
@@ -978,11 +991,94 @@ class PredictApi(Resource):
         print(sale)
         return {'sale': json_sale(sale)}, 200
 
+
+class AuthenticationApi(Resource):
+    """ Class that allows to authenticate (sign in && sign up) """
+
+    @staticmethod
+    def get():
+        """ Method used to sign in
+            Example of query:
+            {
+                "name": 'Tester',
+                "password": 'qwerty123',
+                "remember": 'true'
+            }
+            :return: list[]
+        """
+
+        name = request.args.get('name')
+        password = request.args.get('password')
+        password_hash = hashlib.md5(password.encode() + Consts.PASSWORD_SALT).hexdigest()
+
+        user = User.query.filter(User.name == name, User.password_hash == password_hash).first()
+
+        if user is not None:
+            return {'is_success': True, 'name': user.name, 'token': user.token}
+
+        return {'is_success': False}
+
+    @staticmethod
+    def post():
+        """ Method used to sign up
+            Example of query:
+            {
+                "name": 'Tester',
+                "password": 'qwerty123'
+                "email": 'tester@ya.ru',
+            }
+            :return: list[]
+        """
+
+        request_json = request.json
+
+        if not request_json:
+            return abort(400, "No data")
+
+        errors = []
+
+        name = request_json["name"]
+        email = request_json["email"]
+        password = request_json["password"]
+        password_repeat = request_json["password_repeat"]
+
+        if len(name) < 5 or len(name) > 12:
+            errors.append('Name must be greater than 5 chars and less than 12 chars')
+
+        if db.session.query(User.query.filter(User.name == name).exists()).scalar():
+            errors.append('Name is already taken')
+
+        if not Utils.is_email_valid(email):
+            errors.append('Email is invalid')
+
+        if len(password) < 6:
+            errors.append('Password must be greater than 6 chars')
+
+        if password != password_repeat:
+            errors.append('Password repeat is invalid')
+
+        if len(errors) > 0:
+            return {'is_success': False, "error": errors[0]}
+
+        password_hash = hashlib.md5(password.encode() + Consts.PASSWORD_SALT).hexdigest()
+        privilege_level = 1
+        token = hashlib.sha256((name + Utils.random_string(10)).encode()).hexdigest()
+
+        user = create_user(name, email, password_hash, privilege_level, token)
+        db.session.add(user)
+        db.session.commit()
+
+        return {'is_success': True, 'name': name, 'token': token}
+
+
 api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
+
 api.add_resource(ProductItemsApi,
                  '/api/product_items/<int:product_item_id>')
+
 api.add_resource(ProductGroupsApi,
                  '/api/product_groups/<product_group_id>')
+
 api.add_resource(LocationApi, '/api/locations/<location_id>')
 api.add_resource(WarehouseApi, '/api/warehouses/<warehouse_id>')
 api.add_resource(ShopApi, '/api/shops/<shop_id>')
@@ -997,5 +1093,8 @@ api.add_resource(ListShopsApi, '/api/shops')
 api.add_resource(ListLSTMsApi, '/api/lstms')
 api.add_resource(ListSalesApi, '/api/sales')
 
-#danger(cum) zone
+# danger(cum) zone
 api.add_resource(PredictApi, '/api/predict')
+
+# not danger zone
+api.add_resource(AuthenticationApi, '/api/authentication')

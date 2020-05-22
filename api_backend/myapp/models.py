@@ -101,7 +101,7 @@ class Warehouse(db.Model):  # pylint: disable=too-few-public-methods
     id = db.Column(db.Integer, primary_key=True)
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
     fullness = db.Column(db.Integer)
-    capacity = db.Column(db.Integer) 
+    capacity = db.Column(db.Integer)
     # shops = db.relationship("Shop", backref="warehouse", lazy='dynamic')
 
 class Sale(db.Model):  # pylint: disable=too-few-public-methods
@@ -126,3 +126,13 @@ class LSTM(db.Model):  # pylint: disable=too-few-public-methods
     scope = db.Column(db.PickleType)
     prediction = db.Column(db.Integer)
     before_range = db.Column(db.Integer)
+
+
+class User(db.Model):
+    """ Class that contains User."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    email = db.Column(db.String)
+    password_hash = db.Column(db.String)
+    privilege_level = db.Column(db.Integer)
+    token = db.Column(db.String)
