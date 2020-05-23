@@ -132,7 +132,7 @@ class Sale(db.Model):  # pylint: disable=too-few-public-methods
     # product_item = db.relationship("ProductItem",backref="classes")
     count = db.Column(db.Integer)
     
-    product_type_id = db.Column(db.Integer, db.ForeignKey('product_type.id')) #сука надо добавить я заебался писать через product_item
+    product_type_id = db.Column(db.Integer, db.ForeignKey('product_type.id'))
 
 
 class LSTM(db.Model):  # pylint: disable=too-few-public-methods
