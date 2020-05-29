@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 
 
-# import pickle
+import pickle
 
 from flask import request, abort
 from flask_restful import Resource
@@ -115,7 +115,7 @@ def create_lstm(query):
     """
     before_range = None
     if 'before_range' in query:
-        before_range = query['before_range'] + 1
+        before_range = query['before_range']
     data = db.engine.execute('''
     with dates as (
         select generate_series(
@@ -134,18 +134,14 @@ def create_lstm(query):
             and sale.product_type_id = {1}
         group by 1 order by 1 desc
     '''.format(query['point_id'], query['product_type_id'])).fetchall() #and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
-    # print(data,'data')
-    # print(data,'data') #ON product_item.id = c.product_item_id
-    # data = Sale.query.filter(Sale.shop_id == query['shop_id']).all()
     tb._SYMBOLIC_SCOPE.value = True #! костыль
     model = LSTM.query.filter(LSTM.point_id == query['point_id'],LSTM.product_type_id==query['product_type_id']).first() #+user_id
     if model == None:
         slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
     else:
         slen = model.product_type.seasonality
-    # print(slen)
-    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModelsAndPredict(data,before_range,model,slen)
-
+        before_range = model.before_range
+    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModelsAndPredict(data,before_range + 1,model,slen)
     stepG = 2
 
     if a == -1:
@@ -166,8 +162,8 @@ def create_lstm(query):
                 and sale.point_id = {0}
                 and sale.product_type_id = {1}
             group by 1 order by 1 desc limit {2}
-        '''.format(query['point_id'], query['product_type_id'], stepG + before_range-1 if stepG >= before_range - 2 else before_range + 3)).fetchall()
-        contRes = utils.predict_sales([],step = steps,before_range = before_range,scaler = scaler,model = model)
+        '''.format(query['point_id'], query['product_type_id'], stepG+3 if stepG >= before_range else before_range+3)).fetchall()
+        contRes = utils.predict_step(steps,before_range = before_range+1,scaler = scaler,model = model)
         spros,listForvector,realSpros = lstm_prediciton,contRes[0],contRes[1]
     else:
         steps = db.engine.execute('''
@@ -188,26 +184,15 @@ def create_lstm(query):
                 and sale.product_type_id = {1}
             group by 1 order by 1 desc limit {2}
         '''.format(query['point_id'], query['product_type_id'], 367)).fetchall()
-        resR = utils.predict_rare([],a,b,g,slen,[row[1] for row in steps],stepG)
+        resR = utils.predictWinters([row[1] for row in steps],a,b,g,slen,stepG)
         spros,listForvector,realSpros = prediction,resR[0],resR[1]
 
     print(spros,listForvector,realSpros)
 
 
-
-
-
-
-
-
-
-
-
-
-
     return LSTM(point_id=query['point_id'], product_type_id=query[
         'product_type_id'], alpha=a, beta=b,
-                gamma=g,model = model,scope = scaler,prediction = prediction,
+                gamma=g,model = pickle.dumps(model),scope = pickle.dumps(scaler),prediction = prediction,
                 lstm_pred = lstm_prediciton,before_range = before_range,
                 listForvector = listForvector,realSpros = realSpros) #before_range = before_range
 
