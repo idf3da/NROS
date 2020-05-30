@@ -27,7 +27,8 @@
 		"vue-resource": "^1.5.1",
 		"vue-router": "^3.1.5",
 		"vuetify": "^2.2.11",
-		"vuex": "^3.4.0"
+		"vuex": "^3.4.0",
+		"vue-yandex-maps": "^0.10.7"
 	},
 	"devDependencies": {
 		"@vue/cli-plugin-babel": "~4.2.0",
