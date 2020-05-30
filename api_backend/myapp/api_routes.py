@@ -339,86 +339,12 @@ def create_sale_with_id(query, sale_id):
 
 def make_prediction(query):
     tb._SYMBOLIC_SCOPE.value = True #! костыль
-
-    # warLen = 5
-    # shopLen = 10
-    # sklads = [{'sklad':j,'заполненость':1,'capacity':10000,'minimum':0,'shops':[[i,{'заполненость':1},{'capacity':10000},{'minimum':0}] for i in range(0,shopLen)]} for j in range(0,warLen)]
-
-    # shops = Shop.query.all()
-    # warhouse = Warehouse.query.all()
-    sklads = []
-    # for i in warhouse:
-    #     sklads.append({i:[shops]})
-    # print(sklads)
-    # stepG = query['step']
     models = LSTM.query.filter(LSTM.product_type_id==query['product_type_id']).all() #пока всё
     slen = ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality
     full = []
-    # print(ProductItem.query)
     for i in models:
-        # print(pickle.loads(i.model).layers[0].input_shape)
-        # model = pickle.loads(i.model)
-        # test_shape = 2
-        #pickle.loads(i.model).layers[0].input_shape[1]
-        # before_range = pickle.loads(i.model).layers[0].input_shape[-1] + 2 #i.before_range
-        # print(before_range)
-        # before_range = i.before_range + 1
-
-        # stepG = max(stepG,slen)
-
-        # print(before_range)
-
-
-        const = -1 #-1
-        # if i.alpha == const:
-        #     steps = db.engine.execute('''
-        #     with dates as (
-        #         select generate_series(
-        #             (select min(date) from sale), (select max(date) from sale), '1 day'::interval
-        #         ) as date
-        #     )
-        #     select
-        #         dates.date,
-        #         coalesce(sum(sale.count), 0)
-        #         from dates
-        #         left join sale
-        #             on date_part('day', sale.date) = date_part('day', dates.date)
-        #             and date_part('month', sale.date) = date_part('month', dates.date)
-        #             and date_part('year', sale.date) = date_part('year', dates.date)
-        #             and sale.point_id = {0}
-        #             and sale.product_type_id = {1}
-        #         group by 1 order by 1 desc limit {2}
-        #     '''.format(i.point_id, query['product_type_id'], stepG + before_range-1 if stepG >= before_range - 2 else before_range + 3)).fetchall()
-        #     contRes = utils.predict_sales([],step = steps,before_range = before_range,scaler = i.scope,model = i.model)
-        #     spros,listForvector,realSpros = i.lstm_pred,contRes[0],contRes[1]
-        #     # lstm_pred = float(utils.predict_sales(sales, epochs = 1,before_range = before_range,scaler = i.scope,model = i.model)[0][0])
-        # else:
-        #     steps = db.engine.execute('''
-        #     with dates as (
-        #         select generate_series(
-        #             (select min(date) from sale), (select max(date) from sale), '1 day'::interval
-        #         ) as date
-        #     )
-        #     select
-        #         dates.date,
-        #         coalesce(sum(sale.count), 0)
-        #         from dates
-        #         left join sale
-        #             on date_part('day', sale.date) = date_part('day', dates.date)
-        #             and date_part('month', sale.date) = date_part('month', dates.date)
-        #             and date_part('year', sale.date) = date_part('year', dates.date)
-        #             and sale.point_id = {0}
-        #             and sale.product_type_id = {1}
-        #         group by 1 order by 1 desc limit {2}
-        #     '''.format(i.point_id, query['product_type_id'], 367)).fetchall()
-        #     resR = utils.predict_rare([],i.alpha,i.beta,i.gamma,slen,[row[1] for row in steps],stepG)
-        #     spros,listForvector,realSpros = i.prediction,resR[0],resR[1]
-
-        # war_id = 2
-        # full.append({'sales' : sales, 'model':i, 'shop' : Shop.query.filter(Shop.id == i.shop_id).first(), 'war' : Warehouse.query.filter(Warehouse.id == war_id).first(),'before_range':before_range,'steps':steps,'slen':slen,'year':year})
-        full.append({'spros':i.lstm_pred if i.alpha == const else i.prediction, 'shop' : Point.query.filter(Point.id == i.point_id,Point.shop == True).first(), 'war' : Point.query.filter(i.point_id.in_(Point.shop_id),Point.shop == False).first(),
-       'listForvector':i.listForvector,'realSpros':i.realSpros})
-        # print(full[-1])
+        full.append({'spros':i.lstm_pred if i.alpha == -1 else i.prediction, 'shop' : Point.query.filter(Point.id == i.point_id,Point.shop == True).first(), 'war' : Point.query.filter(i.point_id.in_(Point.shop_id),Point.shop == False).first(),
+       'listForvector':i.listForvector,'realSpros':i.realSpros,'price':i.product_type.price})
     return utils.main_prediction(full)
 
 class ListProductTypesApi(Resource):
