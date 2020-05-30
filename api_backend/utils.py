@@ -13,11 +13,6 @@ import random
 import pickle
 import time
 
-
-
-
-
-
 def trainModelsAndPredict(inData,before_range,model,slen = 0):
     data = pd.DataFrame(columns = {'Quantity','date'})
     for sale in inData:
@@ -535,52 +530,6 @@ def pretransorm_test_data(stepGL,before_range):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
 def convertToPred(pred_set):
 
     pred_set = pred_set.reshape(pred_set.shape[0], pred_set.shape[1])
@@ -680,60 +629,7 @@ def predict_step(step,scaler,model,predict_range = 1,do_scale = True,batch = 32,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-alpha = 0.5
-price = 10
-result = []
-
+ALPHA = 0.5
 def funcE(X):
     res = 0
     for i in X:
@@ -745,13 +641,13 @@ def predictSpros(Fdata,time):
 
 def CheckSendCount(sendCount,minOstat,capacity,pred,zapoln):
     c1 = sendCount>=0
-    upperSendCount = minOstat + alpha*(capacity-minOstat) + pred - zapoln
+    upperSendCount = minOstat + ALPHA*(capacity-minOstat) + pred - zapoln
     lowerSendCount = minOstat  + pred - zapoln
     c2 = sendCount <= upperSendCount and sendCount >= lowerSendCount
     return c1 and c2
 def CheckZakupkaCount(ZNSC,minOstat,capacity,predSum,zapoln):
     c1 = ZNSC>=0
-    upperZNSC = minOstat + alpha*(capacity-minOstat) + predSum - zapoln
+    upperZNSC = minOstat + ALPHA*(capacity-minOstat) + predSum - zapoln
     lowerZNSC = minOstat  + predSum - zapoln
     c2 = ZNSC <= upperZNSC and ZNSC >= lowerZNSC
     return c1 and c2
@@ -761,22 +657,10 @@ def f1_1(sendCount,skN,magN,extend_vars):
     minimum = 0
     res = 0
     for i in extend_vars:
-        if i['war'].id == int(skN) and i['shop'].id == int(magN):
-            
-                
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+        if i['war'].id == int(skN) and i['shop'].id == int(magN):            
             spros = i['spros']
             if CheckSendCount(sendCount,i['shop'].minimum,i['shop'].capacity,spros,i['shop'].fullness): 
-                res+=price*min(spros,(i['shop'].fullness+sendCount)) 
+                res+=i['price']*min(spros,(i['shop'].fullness+sendCount)) 
                 
 
     return res
@@ -793,12 +677,6 @@ def f2_1(sendCount,skN,magN,extend_vars):
 
     for i in extend_vars:
         if i['war'].id == int(skN) and i['shop'].id == int(magN):
-            
-            
-            
-            
-            
-            
             spros,listForvector,realSpros = i['spros'],i['listForvector'],i['realSpros']
 
             if CheckSendCount(sendCount,i['shop'].minimum,i['shop'].capacity,spros,i['shop'].fullness): 
