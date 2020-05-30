@@ -9,7 +9,7 @@
 							<v-spacer></v-spacer>
 							<v-text-field v-model="search1" append-icon="mdi-magnify" label="Search" hide-details></v-text-field>
 						</v-card-title>
-						<v-data-table :height="185" :headers="headers1" :items="locations" :search="search1"></v-data-table>
+						<v-data-table :height="185" :headers="product_headers" :items="product_data" :search="search1"></v-data-table>
 					</v-card>
 				</v-col>
 				<v-col>
@@ -123,7 +123,7 @@
 				product_headers: [
 					{ text: "Name", value: "name" },
 					{ text: "price", value: "price" },
-					{ text: "seasonDay", value: "seasonDay" },
+					{ text: "Popular season", value: "seasonDay" },
 				],
 				store_data: [
 					{
