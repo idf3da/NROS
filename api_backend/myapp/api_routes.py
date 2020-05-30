@@ -1,6 +1,6 @@
 """Module that routes api requests"""
 import datetime
-
+import requests
 import sqlalchemy as sa
 
 
@@ -11,7 +11,7 @@ from flask import request, abort
 from flask_restful import Resource
 from myapp import api
 from myapp.__init__ import db
-from myapp.models import ProductType,Point, LSTM, Sale
+from myapp.models import ProductType,Point, LSTM, Sale, User
 import utils
 
 import keras.backend.tensorflow_backend as tb #! костыль
@@ -76,7 +76,7 @@ def create_point(query):
         :return Point: Point object
     """
     return Point(address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
-     latitude=query['latitude'],longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'], shop_id = query['shop_id'])        
+     latitude=query['latitude'],longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'], shop_id = query['shop_id'])
 
 
 def create_point_with_id(query, point_id):
@@ -88,7 +88,7 @@ def create_point_with_id(query, point_id):
         :return Shop: Shop object
     """
     return Point(id = point_id,address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
-     latitude=query['latitude'],longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'])       
+     latitude=query['latitude'],longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'])
 
 
 def json_lstm(lstm):
@@ -625,6 +625,7 @@ class SaleApi(Resource):
         db.session.commit()
         return {'sale': json_sale(sale)}, 201
 
+
 class PredictApi(Resource):
     """ Class that make predictions """
 
@@ -655,27 +656,33 @@ class PredictApi(Resource):
         print(sale)
         return {'sale': json_sale(sale)}, 200
 
+
+class ImportApi(Resource):
+    @staticmethod
+    def get(user_id):
+        user = User(user_id)
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            id = item['id']
+            date = datetime.datetime.fromisoformat(item['updated'])
+            point_id = item['store']['id']
+            count = item['positions'][0]['quantity']
+            product_type_id = item['positions'][0]['assortment']['id']
+            price = item['positions'][0]['price']
+            user_uuid = item['accountId']
+            sale = Sale(id=id,date=date,point_id=point_id, count=count,
+                        product_type_id=product_type_id,price=price,user_id=user_uuid)
+            db.session.add(sale)
+            db.session.commit()
+
+
+
 api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
-
-
 api.add_resource(PointApi, '/api/points/<point_id>')
-
 api.add_resource(LSTMApi, '/api/lstms/<lstm_id>')
-
 api.add_resource(SaleApi, '/api/sales/<sale_id>')
 api.add_resource(ListProductTypesApi, '/api/product_types')
-
-
 api.add_resource(ListPointsApi, '/api/points')
-
 api.add_resource(ListLSTMsApi, '/api/lstms')
 api.add_resource(ListSalesApi, '/api/sales')
-
-#danger(cum) zone
 api.add_resource(PredictApi, '/api/predict')
-
-
-    # data = Sale.query.filter(Sale.shop_id==query['shop_id'], Sale.product_item.product_type_id==query['product_type_id']).all()
-        # data = Sale.query.join(ProductItem).filter(Sale.shop_id==query['shop_id'],ProductItem.product_type_id == query['product_type_id']).all()
-        # data = ProductItem.query.join(Sale).filter(Sale.shop_id==query['shop_id'],ProductItem.product_type_id == query['product_type_id']).all()
-        # data = db.session.query(Sale,ProductItem).filter(Sale.shop_id==query['shop_id'],ProductItem.product_type_id == query['product_type_id']).all()

@@ -1,4 +1,5 @@
 .idea
 *.pyc
 /venv/
+api_backend/venv/
 /migrations/
