@@ -1,8 +1,14 @@
-# Neuro Retail Optimization System
+# NROS
+Рекомендательная система управлением логистики и retail компаний с использованием технологий Машинного обучения. 
 
-# Our WEB UI design
-![Our project WEB UI map](schemes/very_important_DONT_DELETE.png)
+# Участники команды
 
-Nothing is here...
+Илья Шабанов
+Дмитрий Косенко
+Александр Копылов
+Дмитрий Григорян
+Антон Шадрин
+Кирилл Абрамкин
+Лев Тулявко
+Субботин Артем
 
-or is it?
