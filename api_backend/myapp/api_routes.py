@@ -4,15 +4,18 @@ import hashlib
 import pickle
 
 import keras.backend.tensorflow_backend as tb  # ! костыль
+import requests
+import sqlalchemy as sa
+import pickle
 from flask import request, abort
 from flask_restful import Resource
 from myapp import api
 from myapp.__init__ import db
 from myapp.consts import Consts
-from myapp.models import ProductType, ProductItem, ProductGroup, Location, \
-    Warehouse, Shop, LSTM, Sale, User
 from myapp.utils import Utils
+from myapp.models import ProductType,Point, LSTM, Sale, User
 
+import keras.backend.tensorflow_backend as tb #! костыль
 
 def json_type(product_type):
     """Function converts product_type object into dictionary
@@ -49,104 +52,295 @@ def create_type_with_id(query, product_type_id):
                        price=query['price'], seasonality=query['seasonality'])
 
 
-def json_item(product_item):
-    """ Function converts product_item object into dictionary
-        :param product_item: (ProductItem) Product Item object
-        :return dict: dictionary containing converted Product Item
-    """
-    return {'id': product_item.id,
-            'product_type': json_type(product_item.product_type),
-            'product_type_id': product_item.product_type_id,
-            'count': product_item.count}
-
-
-def create_item(query):
-    """ Function creates Product Item from query.
-        :param query: (dict) Example: {product_type_id: 1, count:10}
-        :return ProductItem: Product Item object
-    """
-    return ProductItem(product_type_id=query['product_type_id'],
-                       count=query['count'])
-
-
-def create_item_with_id(query, product_item_id):
-    """ Function creates Product Item with id from query.
-            :param query: (dict) Example: {product_type_id: 1, count:10}
-            :param product_item_id: (int)
-            :return ProductItem: Product Item object
+def json_point(point):
+    """ Function converts Point object into dictionary
+        :param point: (Point) Point object
+        :return dict: dictionary containing converted Point
         """
-    return ProductItem(id=product_item_id,
-                       product_type_id=query['product_type_id'],
-                       count=query['count'])
+    return {'id': point.id,
+            'fullness': point.fullness,
+            'address':point.address,'latitude':point.latitude,'longitude':point.longitude,
+            'capacity':point.capacity,'minimum':point.minimum,'shop':point.shop, 'shop_id':point.shop_id}
 
 
-def json_group(product_group):
-    """ Function converts product_group object into dictionary
-        :param product_group: (ProductGroup) Product Group object
-        :return dict: dictionary containing converted Product Group
+def create_point(query):
+    """ Function creates Point from query.
+        :param query: (dict) Example: { location_id: 1,
+                                        fullness: 10,
+                                        capacity: 20 }
+        :return Point: Point object
     """
-    return {'id': product_group.id,
-            'product_items': [json_item(product_item) for product_item in
-                              product_group.product_items]}
+    return Point(address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
+     latitude=query['latitude'],longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'], shop_id = query['shop_id'])
 
 
-def create_group(query):
-    """ Function creates Product Group from query.
-        :param query: (dict) Example: {product_items: [1, 2, 3]}
-        :return ProductGroup: Product Group object
+def create_point_with_id(query, point_id):
+    """ Function creates Shop with id from query.
+        :param query: (dict) Example: { location_id: 1,
+                                        fullness: 10,
+                                        capacity: 20 }
+        :param shop_id: (int)
+        :return Shop: Shop object
     """
-    return ProductGroup(
-        product_items=[
-            ProductItem.query.get_or_404(product_item['product_item']['id'])
-            for product_item in
-            query['product_items']])
+    return Point(id = point_id,address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
+     latitude=query['latitude'],longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'])
 
 
-def create_group_with_id(query, product_group_id):
-    """ Function creates Product Group with id from query.
-            :param query: (dict) Example: {product_items: [1, 2, 3]}
-            :param product_group_id: (int)
-            :return ProductGroup: Product Group object
+def json_lstm(lstm):
+    """ Function converts LSTM object into dictionary
+        :param lstm: (LSTM) LSTM object
+        :return dict: dictionary containing converted LSTM
         """
-    product_items = [
-        ProductItem.query.get_or_404(product_item['product_item']['id'])
-        for product_item in query['product_items']
-    ]
-    return ProductGroup(id=product_group_id, product_items=product_items)
+    return {'id': lstm.id, 'point_id': lstm.point_id,
+            'product_type_id': lstm.product_type_id, 'alpha': lstm.alpha,
+            'beta': lstm.beta, 'gamma': lstm.gamma, 'prediction':lstm.prediction,
+            'before_range':lstm.before_range,'lstm_pred':lstm.lstm_pred,
+            'listForvector':lstm.listForvector,'realSpros':lstm.realSpros}
 
 
-def json_location(location):
-    """ Function converts Location object into dictionary
-        :param location: (Location) Location object
-        :return dict: dictionary containing converted Location
+def create_lstm(query):
+    """ Function creates LSTM from query.
+        :param query: (dict) Example: { shop_id: 1,
+                                        product_type_id: 1,
+                                        alpha: 0.1,
+                                        beta: 0.1,
+                                        gamma: 0.1
+                                      }
+        :return LSTM: LSTM object
+    """
+    before_range = None
+    if 'before_range' in query:
+        before_range = query['before_range']
+    data = db.engine.execute('''
+    with dates as (
+        select generate_series(
+            (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+        ) as date
+    )
+    select
+        dates.date,
+        coalesce(sum(sale.count), 0)
+        from dates
+        left join sale
+            on date_part('day', sale.date) = date_part('day', dates.date)
+            and date_part('month', sale.date) = date_part('month', dates.date)
+            and date_part('year', sale.date) = date_part('year', dates.date)
+            and sale.point_id = {0}
+            and sale.product_type_id = {1}
+        group by 1 order by 1 desc
+    '''.format(query['point_id'], query['product_type_id'])).fetchall() #and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
+    tb._SYMBOLIC_SCOPE.value = True #! костыль
+    model = LSTM.query.filter(LSTM.point_id == query['point_id'],LSTM.product_type_id==query['product_type_id']).first() #+user_id
+    if model == None:
+        slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
+    else:
+        slen = model.product_type.seasonality
+        before_range = model.before_range
+    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModelsAndPredict(data,before_range + 1,model,slen)
+    stepG = 2
+
+    if a == -1:
+        steps = db.engine.execute('''
+        with dates as (
+            select generate_series(
+                (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+            ) as date
+        )
+        select
+            dates.date,
+            coalesce(sum(sale.count), 0)
+            from dates
+            left join sale
+                on date_part('day', sale.date) = date_part('day', dates.date)
+                and date_part('month', sale.date) = date_part('month', dates.date)
+                and date_part('year', sale.date) = date_part('year', dates.date)
+                and sale.point_id = {0}
+                and sale.product_type_id = {1}
+            group by 1 order by 1 desc limit {2}
+        '''.format(query['point_id'], query['product_type_id'], stepG+3 if stepG >= before_range else before_range+3)).fetchall()
+        contRes = utils.predict_step(steps,before_range = before_range+1,scaler = scaler,model = model)
+        spros,listForvector,realSpros = lstm_prediciton,contRes[0],contRes[1]
+    else:
+        steps = db.engine.execute('''
+        with dates as (
+            select generate_series(
+                (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+            ) as date
+        )
+        select
+            dates.date,
+            coalesce(sum(sale.count), 0)
+            from dates
+            left join sale
+                on date_part('day', sale.date) = date_part('day', dates.date)
+                and date_part('month', sale.date) = date_part('month', dates.date)
+                and date_part('year', sale.date) = date_part('year', dates.date)
+                and sale.point_id = {0}
+                and sale.product_type_id = {1}
+            group by 1 order by 1 desc limit {2}
+        '''.format(query['point_id'], query['product_type_id'], 367)).fetchall()
+        resR = utils.predictWinters([row[1] for row in steps],a,b,g,slen,stepG)
+        spros,listForvector,realSpros = prediction,resR[0],resR[1]
+
+    print(spros,listForvector,realSpros)
+
+
+    return LSTM(point_id=query['point_id'], product_type_id=query[
+        'product_type_id'], alpha=a, beta=b,
+                gamma=g,model = pickle.dumps(model),scope = pickle.dumps(scaler),prediction = prediction,
+                lstm_pred = lstm_prediciton,before_range = before_range,
+                listForvector = listForvector,realSpros = realSpros) #before_range = before_range
+
+
+def create_lstm_with_id(query, lstm_id):
+    """ Function creates LSTM with id from query.
+        :param query: (dict) Example: { shop_id: 1,
+                                        product_type_id: 1,
+                                        alpha: 0.1,
+                                        beta: 0.1,
+                                        gamma: 0.1
+                                      }
+        :param lstm_id: (int)
+        :return LSTM: LSTM object
+    """
+    before_range = None
+    if 'before_range' in query:
+        before_range = query['before_range'] + 1
+
+    data = db.engine.execute('''
+    with dates as (
+        select generate_series(
+            (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+        ) as date
+    )
+    select
+        dates.date,
+        coalesce(sum(sale.count), 0)
+        from dates
+        left join sale
+            on date_part('day', sale.date) = date_part('day', dates.date)
+            and date_part('month', sale.date) = date_part('month', dates.date)
+            and date_part('year', sale.date) = date_part('year', dates.date)
+            and sale.point_id = {0}
+            and sale.product_type_id = {1}
+        group by 1 order by 1 desc
+    '''.format(query['point_id'], query['product_type_id'])).fetchall()
+    # print(data,'data')
+    # data = Sale.query.filter(Sale.shop_id == query['shop_id']).all()
+    tb._SYMBOLIC_SCOPE.value = True #! костыль
+    models = LSTM.query.filter(LSTM.point_id == query['point_id'],LSTM.product_type_id==query['product_type_id']).all() #+user_id
+    if models == []:
+        slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
+    else:
+        slen = models[0].product_type.seasonality
+    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModels(data,before_range,models,slen)
+
+    stepG = 2
+
+    if a == -1:
+        steps = db.engine.execute('''
+        with dates as (
+            select generate_series(
+                (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+            ) as date
+        )
+        select
+            dates.date,
+            coalesce(sum(sale.count), 0)
+            from dates
+            left join sale
+                on date_part('day', sale.date) = date_part('day', dates.date)
+                and date_part('month', sale.date) = date_part('month', dates.date)
+                and date_part('year', sale.date) = date_part('year', dates.date)
+                and sale.point_id = {0}
+                and sale.product_type_id = {1}
+            group by 1 order by 1 desc limit {2}
+        '''.format(query['point_id'], query['product_type_id'], stepG + before_range-1 if stepG >= before_range - 2 else before_range + 3)).fetchall()
+        contRes = utils.predict_sales([],step = steps,before_range = before_range,scaler = scaler,model = model)
+        spros,listForvector,realSpros = lstm_prediciton,contRes[0],contRes[1]
+    else:
+        steps = db.engine.execute('''
+        with dates as (
+            select generate_series(
+                (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+            ) as date
+        )
+        select
+            dates.date,
+            coalesce(sum(sale.count), 0)
+            from dates
+            left join sale
+                on date_part('day', sale.date) = date_part('day', dates.date)
+                and date_part('month', sale.date) = date_part('month', dates.date)
+                and date_part('year', sale.date) = date_part('year', dates.date)
+                and sale.point_id = {0}
+                and sale.product_type_id = {1}
+            group by 1 order by 1 desc limit {2}
+        '''.format(query['point_id'], query['product_type_id'], 367)).fetchall()
+        resR = utils.predict_rare([],a,b,g,slen,[row[1] for row in steps],stepG)
+        spros,listForvector,realSpros = prediction,resR[0],resR[1]
+
+    print(spros,listForvector,realSpros)
+
+
+
+
+
+
+    return LSTM(id = lstm_id,point_id=query['point_id'], product_type_id=query[
+        'product_type_id'], alpha=a, beta=b,
+                gamma=g,model = model,scope = scaler,prediction = prediction,
+                lstm_pred = lstm_prediciton,before_range = before_range,
+                listForvector = listForvector,realSpros = realSpros)
+
+
+def json_sale(sale):
+    """ Function converts Sale object into dictionary
+        :param sale: (Sale) Sale object
+        :return dict: dictionary containing converted Sale
         """
-    return {'id': location.id, 'address': location.address,
-            'latitude': location.latitude, 'longitude': location.longitude}
+    return {'id': sale.id, 'date': str(sale.date),
+            'count': sale.count, 'point_id': sale.point_id, 'product_type_id':sale.product_type_id}
 
 
-def create_location(query):
-    """ Function creates Location from query.
-        :param query: (dict) Example: {address: "Yubileynaya Street, 13/2",
-                                latitude: 55.911905,
-                                longitude: 37.719328}
-        :return Location: Location object
+def create_sale(query):
+    """ Function creates Sale from query.
+        :param query: (dict) Example: { date: '2011-11-04 00:05:23',
+                                        product_item_id: 10,
+                                        shop_id: 20 }
+        :return Sale: Sale object
     """
-    return Location(address=query['address'], latitude=query['latitude'],
-                    longitude=query['longitude'])
+    return Sale(date=datetime.datetime.fromisoformat(query['date']),
+                product_type_id=query['product_type_id'],
+                point_id=query['point_id'],
+                count = query['count'])
 
 
-def create_location_with_id(query, location_id):
-    """ Function creates Location with id from query.
-        :param query: (dict) Example: {
-                                address: "Yubileynaya Street, 13/2",
-                                latitude: 55.911905,
-                                longitude: 37.719328}
-        :param location_id: (int)
-        :return Location: Location object
+def create_sale_with_id(query, sale_id):
+    """ Function creates Sale with id from query.
+        :param query: (dict) Example: { date: '2011-11-04 00:05:23',
+                                        product_item_id: 10,
+                                        shop_id: 20 }
+        :param sale_id: (int)
+        :return Sale: Sale object
     """
-    return Location(id=location_id, address=query['address'],
-                    latitude=query['latitude'],
-                    longitude=query['longitude'])
+    return Sale(id=sale_id, date=datetime.datetime.fromisoformat(query['date']),
+                product_type_id=query['product_type_id'],
+                point_id=query['point_id'],
+                count = query['count'])
+
+
+
+
+def make_prediction(query):
+    tb._SYMBOLIC_SCOPE.value = True #! костыль
+    models = LSTM.query.filter(LSTM.product_type_id==query['product_type_id']).all() #пока всё
+    slen = ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality
+    full = []
+    for i in models:
+        full.append({'spros':i.lstm_pred if i.alpha == -1 else i.prediction, 'shop' : Point.query.filter(Point.id == i.point_id,Point.shop == True).first(), 'war' : Point.query.filter(i.point_id.in_(Point.shop_id),Point.shop == False).first(),
+       'listForvector':i.listForvector,'realSpros':i.realSpros,'price':i.product_type.price})
+    return utils.main_prediction(full)
 
 
 def json_warehouse(warehouse):
@@ -412,8 +606,6 @@ class ListProductTypesApi(Resource):
         db.session.add(product_type)
         db.session.commit()
         return {'product_type': json_type(product_type)}, 201
-
-
 class ProductTypesApi(Resource):
     """ Class that gets/updates/deletes Product Type by id """
 
@@ -453,305 +645,7 @@ class ProductTypesApi(Resource):
         return {'product_type': json_type(product_type)}, 201
 
 
-class ListProductItemsApi(Resource):
-    """ Class that gets all Product Items or creates new """
-
-    @staticmethod
-    def get():
-        """ Method used to get list of all Product Items
-        :return: list[ProductItem]
-        """
-        product_items = ProductItem.query.all()
-        return {'product_items': [json_item(product_item) for product_item
-                                  in
-                                  product_items]}, 200
-
-    @staticmethod
-    def post():
-        """ Create new Product Item
-            Example product item post query:
-            {
-                "product_type_id": 5,
-                "count": 100000
-            }
-            :return: jsonifyed ProductItem
-        """
-        if not request.json:
-            abort(400, "No data")
-        product_item = create_item(request.json)
-        db.session.add(product_item)
-        db.session.commit()
-        return {'product_item': json_item(product_item)}, 201
-
-
-class ProductItemsApi(Resource):
-    """ Class that gets/updates/deletes Product Item by id """
-
-    @staticmethod
-    def get(product_item_id):
-        """ Get Product Item by id
-            :param product_item_id: (int)
-            :return ProductItem: Product Item object
-        """
-        product_item = ProductItem.query.get_or_404(product_item_id)
-        return {'product_item': json_item(product_item)}, 200
-
-    @staticmethod
-    def delete(product_item_id):
-        """ Deletes Product Item by id
-            :param product_item_id: (int)
-            :return: empty html
-        """
-        product_item = ProductItem.query.get_or_404(product_item_id)
-        db.session.delete(product_item)
-        db.session.commit()
-        return "", 200
-
-    @staticmethod
-    def put(product_item_id):
-        """ Update/Create Product Item by id
-            :param product_item_id: (int)
-            :return: ProductItem: Product Item object
-        """
-        if not request.json:
-            abort(400, "No data")
-        db.session.delete(ProductItem.query.get_or_404(product_item_id))
-        db.session.commit()
-        product_item = create_item_with_id(request.json, product_item_id)
-        db.session.add(product_item)
-        db.session.commit()
-        return {'product_item': json_item(product_item)}, 201
-
-
-class ListProductGroupsApi(Resource):
-    """ Class that gets all Product Groups or creates new """
-
-    @staticmethod
-    def get():
-        """ Method used to get list of all Product Groups
-                :return: list[ProductGroup]
-                """
-        product_groups = ProductGroup.query.all()
-        return {'product_groups': [json_group(product_group) for
-                                   product_group
-                                   in
-                                   product_groups]}, 200
-
-    @staticmethod
-    def post():
-        """ Create new Product Group
-            Example product group query:
-            {
-                "product_items": [
-                    {
-                        "product_item": {
-                            "id": 3
-                        }
-                    },
-                    {
-                        "product_item": {
-                            "id": 4
-                        }
-                    },
-                    {
-                        "product_item": {
-                            "id": 5
-                        }
-                    }
-                ]
-            }
-            :return: jsonifyed ProductGroup
-            """
-        if not request.json:
-            abort(400, "No data")
-        product_group = create_group(request.json)
-        db.session.add(product_group)
-        db.session.commit()
-        return {'product_group': json_group(product_group)}, 200
-
-
-class ProductGroupsApi(Resource):
-    """ Class that gets/updates/deletes Product Group by id """
-
-    @staticmethod
-    def get(product_group_id):
-        """ Get Product Group by id
-            :param product_group_id:
-            :return ProductGroup: Product Group object
-        """
-        product_group = ProductGroup.query.get_or_404(product_group_id)
-        return {'product_group': json_group(product_group)}, 200
-
-    @staticmethod
-    def delete(product_group_id):
-        """ Deletes Product Group by id
-            :param product_group_id: (int)
-            :return: empty html
-        """
-        product_group = ProductGroup.query.get_or_404(product_group_id)
-        db.session.delete(product_group)
-        db.session.commit()
-        return "", 200
-
-    @staticmethod
-    def put(product_group_id):
-        """ Update/Create Product Group by id
-            :param product_group_id: (int)
-            :return: ProductGroup: Product Group object
-        """
-        if not request.json:
-            abort(400, "No data")
-        delete_group = ProductGroup.query.get_or_404(product_group_id)
-        db.session.delete(delete_group)
-        db.session.commit()
-        product_group = create_group_with_id(request.json,
-                                             product_group_id)
-        db.session.add(product_group)
-        db.session.commit()
-        return {'product_group': json_group(product_group)}, 201
-
-
-class ListLocationsApi(Resource):
-    """ Class that gets all Locations or creates new """
-
-    @staticmethod
-    def get():
-        """ Method used to get list of all Locations
-            :return: list[Location]
-        """
-        locations = Location.query.all()
-        return {'locations': [json_location(location) for location in
-                              locations]}, 200
-
-    @staticmethod
-    def post():
-        """ Create new Location
-            Example location post query:
-            {
-                "address": "Lva Tolstogo Street, 16 - MSP Yandex",
-                "latitude": 55.733969,
-                "longitude": 37.587093
-            }
-            :return: jsonifyed Location
-        """
-        if not request.json:
-            abort(400, "No data")
-        location = create_location(request.json)
-        db.session.add(location)
-        db.session.commit()
-        return {'location': json_location(location)}, 200
-
-
-class LocationApi(Resource):
-    """ Class that gets/updates/deletes Location by id """
-
-    @staticmethod
-    def get(location_id):
-        """ Get Location by id
-            :param location_id: (int)
-            :return Location: Location object
-        """
-        location = Location.query.get_or_404(location_id)
-        return {'location': json_location(location)}, 200
-
-    @staticmethod
-    def delete(location_id):
-        """ Deletes Location by id
-            :param location_id: (int)
-            :return: empty html
-        """
-        location = Location.query.get_or_404(location_id)
-        db.session.delete(location)
-        db.session.commit()
-        return "", 200
-
-    @staticmethod
-    def put(location_id):
-        """ Update/Create Location by id
-            :param location_id: (int)
-            :return: Location: Location object
-        """
-        if not request.json:
-            abort(400, "No data")
-        db.session.delete(Location.query.get_or_404(location_id))
-        db.session.commit()
-        location = create_location_with_id(request.json, location_id)
-        db.session.add(location)
-        db.session.commit()
-        return {'location': json_location(location)}, 201
-
-
-class ListWarehousesApi(Resource):
-    """ Class that gets all Warehouses or creates new """
-
-    @staticmethod
-    def get():
-        """ Method used to get list of all Warehouses
-            :return: list[Warehouse]
-        """
-        warehouses = Warehouse.query.all()
-        return {'warehouses': [json_warehouse(warehouse) for warehouse in
-                               warehouses]}, 200
-
-    @staticmethod
-    def post():
-        """ Create new Warehouse
-            Example warehouse post query:
-            {
-                "warehouse_id": 1,
-                "fullness": 10,
-                "capacity": 20
-            }
-            :return: jsonifyed Warehouse
-        """
-        if not request.json:
-            abort(400, "No data")
-        warehouse = create_warehouse(request.json)
-        db.session.add(warehouse)
-        db.session.commit()
-        return {'warehouse': json_warehouse(warehouse)}, 200
-
-
-class WarehouseApi(Resource):
-    """ Class that gets/updates/deletes Warehouse by id """
-
-    @staticmethod
-    def get(warehouse_id):
-        """ Get Warehouse by id
-            :param warehouse_id: (int)
-            :return Warehouse: Warehouse object
-        """
-        warehouse = Warehouse.query.get_or_404(warehouse_id)
-        return {'warehouse': json_warehouse(warehouse)}, 200
-
-    @staticmethod
-    def delete(warehouse_id):
-        """ Deletes Warehouse by id
-            :param warehouse_id: (int)
-            :return: empty html
-        """
-        warehouse = Warehouse.query.get_or_404(warehouse_id)
-        db.session.delete(warehouse)
-        db.session.commit()
-        return "", 200
-
-    @staticmethod
-    def put(warehouse_id):
-        """ Update/Create Warehouse by id
-            :param warehouse_id: (int)
-            :return: Warehouse: Warehouse object
-        """
-        if not request.json:
-            abort(400, "No data")
-        db.session.delete(Warehouse.query.get_or_404(warehouse_id))
-        db.session.commit()
-        warehouse = create_warehouse_with_id(request.json, warehouse_id)
-        db.session.add(warehouse)
-        db.session.commit()
-        return {'warehouse': json_warehouse(warehouse)}, 201
-
-
-class ListShopsApi(Resource):
+class ListPointsApi(Resource):
     """ Class that gets all Shops or creates new """
 
     @staticmethod
@@ -759,8 +653,8 @@ class ListShopsApi(Resource):
         """ Method used to get list of all Shops
             :return: list[Shop]
         """
-        shops = Shop.query.all()
-        return {'shops': [json_shop(shops) for shops in shops]}, 200
+        points = Point.query.all()
+        return {'points': [json_point(points) for points in points]}, 200
 
     @staticmethod
     def post():
@@ -775,49 +669,49 @@ class ListShopsApi(Resource):
         """
         if not request.json:
             abort(400, "No data")
-        shop = create_shop(request.json)
-        db.session.add(shop)
+        point = create_point(request.json)
+        db.session.add(point)
         db.session.commit()
-        return {'shop': json_shop(shop)}, 200
+        return {'point': json_point(point)}, 200
 
 
-class ShopApi(Resource):
-    """ Class that gets/updates/deletes Shop by id """
+class PointApi(Resource):
+    """ Class that gets/updates/deletes Point by id """
 
     @staticmethod
-    def get(shop_id):
+    def get(point_id):
         """ Get Shop by id
             :param shop_id: (int)
             :return Shop: Shop object
         """
-        shop = Shop.query.get_or_404(shop_id)
-        return {'shop': json_shop(shop)}, 200
+        point = Point.query.get_or_404(point_id)
+        return {'shop': json_point(point)}, 200
 
     @staticmethod
-    def delete(shop_id):
+    def delete(point_id):
         """ Deletes Shop by id
             :param shop_id: (int)
             :return: empty html
         """
-        shop = Shop.query.get_or_404(shop_id)
-        db.session.delete(shop)
+        point = Point.query.get_or_404(point_id)
+        db.session.delete(point)
         db.session.commit()
         return "", 200
 
     @staticmethod
-    def put(shop_id):
+    def put(point_id):
         """ Update/Create Shop by id
             :param shop_id: (int)
             :return: Shop: Shop object
         """
         if not request.json:
             abort(400, "No data")
-        db.session.delete(Shop.query.get_or_404(shop_id))
+        db.session.delete(Point.query.get_or_404(point_id))
         db.session.commit()
-        shop = create_shop_with_id(request.json, shop_id)
-        db.session.add(shop)
+        point = create_point_with_id(request.json, point_id)
+        db.session.add(point)
         db.session.commit()
-        return {'shop': json_shop(shop)}, 201
+        return {'point': json_point(point)}, 201
 
 
 class ListLSTMsApi(Resource):
@@ -992,6 +886,25 @@ class PredictApi(Resource):
         return {'sale': json_sale(sale)}, 200
 
 
+class ImportApi(Resource):
+    @staticmethod
+    def get(user_id):
+        user = User(user_id)
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            id = item['id']
+            date = datetime.datetime.fromisoformat(item['updated'])
+            point_id = item['store']['id']
+            count = item['positions'][0]['quantity']
+            product_type_id = item['positions'][0]['assortment']['id']
+            price = item['positions'][0]['price']
+            user_uuid = item['accountId']
+            sale = Sale(id=id,date=date,point_id=point_id, count=count,
+                        product_type_id=product_type_id,price=price,user_id=user_uuid)
+            db.session.add(sale)
+            db.session.commit()
+
+
 class AuthenticationApi(Resource):
     """ Class that allows to authenticate (sign in && sign up) """
 
@@ -1072,29 +985,12 @@ class AuthenticationApi(Resource):
 
 
 api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
-
-api.add_resource(ProductItemsApi,
-                 '/api/product_items/<int:product_item_id>')
-
-api.add_resource(ProductGroupsApi,
-                 '/api/product_groups/<product_group_id>')
-
-api.add_resource(LocationApi, '/api/locations/<location_id>')
-api.add_resource(WarehouseApi, '/api/warehouses/<warehouse_id>')
-api.add_resource(ShopApi, '/api/shops/<shop_id>')
+api.add_resource(AuthenticationApi, '/api/authentication')
+api.add_resource(PointApi, '/api/points/<point_id>')
 api.add_resource(LSTMApi, '/api/lstms/<lstm_id>')
 api.add_resource(SaleApi, '/api/sales/<sale_id>')
 api.add_resource(ListProductTypesApi, '/api/product_types')
-api.add_resource(ListProductItemsApi, '/api/product_items')
-api.add_resource(ListProductGroupsApi, '/api/product_groups')
-api.add_resource(ListLocationsApi, '/api/locations')
-api.add_resource(ListWarehousesApi, '/api/warehouses')
-api.add_resource(ListShopsApi, '/api/shops')
+api.add_resource(ListPointsApi, '/api/points')
 api.add_resource(ListLSTMsApi, '/api/lstms')
 api.add_resource(ListSalesApi, '/api/sales')
-
-# danger(cum) zone
 api.add_resource(PredictApi, '/api/predict')
-
-# not danger zone
-api.add_resource(AuthenticationApi, '/api/authentication')
