@@ -15,14 +15,14 @@
 				<v-col>
 					<v-card outlined tile>
 						<v-card-text class="px-0">
-							<yandex-map :zoom="13" :coords="[55.753, 37.62]" :controls="[]" style="height: 300px;" :placemarks="placemarks" @map-was-initialized="initHandler">
-								<ymap-marker marker-type="circle" :coords="[55.753, 37.62]" circle-radius="4500" hint-content="Zone" marker-id="0" :marker-fill="{ color: '#000', opacity: 0 }" :marker-stroke="{ color: '#ff0000', width: 200, opacity: 0.5 }" :balloon="{ header: 'Это зона', body: 'вы в зоне', footer: 'Урона нет' }"></ymap-marker>
+							<yandex-map :zoom="13" :coords="[55.753, 37.62]" :controls="[]" style="height: 300px;" @map-was-initialized="initHandler">
 								<ymap-marker marker-type="circle" :coords="[55.765, 37.6]" circle-radius="700" hint-content="Cool loot zone" marker-id="1" :marker-fill="{ color: '#00FFFF', opacity: 0.5 }" :balloon="{ header: 'Cool loot', body: 'Probability of high loot here is increased' }"></ymap-marker>
 								<ymap-marker marker-type="circle" :coords="[55.75, 37.63]" circle-radius="1500" hint-content="Next zone" marker-id="2" :marker-fill="{ color: '#D8D8D8', opacity: 0.3 }" :balloon="{ header: 'Next zone' }" :marker-stroke="{ color: '#808080', width: 2, opacity: 1 }"></ymap-marker>
 								<ymap-marker :coords="[55.745, 37.6]" marker-id="3" hint-content="That's you" :icon="markerIcon" />
 								<ymap-marker :coords="[55.755, 37.59]" marker-id="4" hint-content="Store" :icon="storeIcon" />
 								<ymap-marker :coords="[55.755, 37.63]" marker-id="5" hint-content="Store" :icon="storeIcon" />
-								<ymap-marker :coords="[55.77, 37.62]" marker-id="6" hint-content="Warehouse" :icon="wareHouseIcon" />
+								<ymap-marker :coords="[55.74, 37.62]" marker-id="6" hint-content="Store" :icon="storeIcon" />
+								<ymap-marker :coords="[55.77, 37.62]" marker-id="7" hint-content="Warehouse" :icon="wareHouseIcon" />
 							</yandex-map>
 						</v-card-text>
 					</v-card>
@@ -30,34 +30,38 @@
 				<v-responsive style="width: 100%"></v-responsive>
 				<v-col>
 					<v-card :loading="switch1" style="width: 100%" class="pa-0" outlined tile>
-						<v-card-title
+						<v-card-title class="mt-n9"
 							>Optimization options
-							<v-spacer />
-							<v-checkbox v-model="checkbox1" label="Store 1"></v-checkbox>
-							<v-spacer />
-							<v-checkbox v-model="checkbox1" label="Store 2"></v-checkbox>
-							<v-spacer />
-							<v-switch v-model="switch1" color="blue" label="Use something"></v-switch>
-							<v-spacer />
-							<v-spacer></v-spacer>
-							<v-text>
-								<v-row>
-									<v-btn color="success" :loading="switch1" large>Make <br />New suggestion</v-btn>
-								</v-row>
-							</v-text>
+
+							<v-col class="ml-5 mt-1"
+								><v-checkbox v-model="checkbox1" label="Магазин 1"></v-checkbox>
+								<v-checkbox class="mt-n4" v-model="checkbox1" label="Магазин 2"></v-checkbox>
+							</v-col>
+							<v-switch class="mr-5" v-model="switch1" color="blue" label="Use seasonal algorithm"></v-switch>
+							<v-btn color="success" :loading="switch1" large>Make <br />New suggestion</v-btn>
 						</v-card-title>
-						<v-data-table :headers="table_headers" :items="table_data" :search="table_search" hide-actions :pagination.sync="table_pagination" class="elevation-1">
-							<template v-slot:items="props">
-								<td>{{ props.item.name }}</td>
-								<td class="text-xs-right">{{ props.item.calories }}</td>
-								<td class="text-xs-right">{{ props.item.fat }}</td>
-								<td class="text-xs-right">{{ props.item.carbs }}</td>
-								<td class="text-xs-right">{{ props.item.protein }}</td>
-								<td class="text-xs-right">{{ props.item.iron }}</td>
+						<v-data-table :headers="store_headers" :items="store_data" :expanded.sync="expanded" item-key="shopID" show-expand :search="table_search" :options.sync="table_pagination">
+							<template v-slot:top>
+								<v-toolbar flat>
+									<v-toolbar-title>Your properties</v-toolbar-title>
+								</v-toolbar>
+							</template>
+							<template v-slot:expanded-item="{}">
+								<v-spacer></v-spacer>
+								<td :colspan="2">
+									<v-data-table hide-default-footer :headers="product_headers" :items="product_data" :items-per-page="1000" elevation-0>
+										<template v-slot:top>
+											<v-toolbar flat>
+												<v-toolbar-title caption>Properties products</v-toolbar-title>
+											</v-toolbar>
+										</template>
+									</v-data-table>
+								</td>
+								<v-spacer></v-spacer>
 							</template>
 						</v-data-table>
 						<div class="text-xs-center pt-2">
-							<v-pagination v-model="table_pagination.page" :length="pages"></v-pagination>
+							<v-options v-model="table_pagination.page" :length="pages"></v-options>
 						</div>
 					</v-card>
 				</v-col>
@@ -104,117 +108,102 @@
 				search1: "",
 				table_search: "",
 				switch1: false,
+				expanded: [],
 				module1: "",
-				headers1: [
-					{
-						text: "Location Id",
-						align: "start",
-						value: "id",
-					},
-					{ text: "Address", value: "address" },
-					{ text: "Latitude", value: "latitude" },
-					{ text: "Longitude", value: "longitude" },
-				],
 				table_pagination: {},
 				table_selected: [],
-				table_headers: [
-					{
-						text: "Dessert (100g serving)",
-						align: "left",
-						sortable: false,
-						value: "name",
-					},
-					{ text: "Calories", value: "calories" },
-					{ text: "Fat (g)", value: "fat" },
-					{ text: "Carbs (g)", value: "carbs" },
-					{ text: "Protein (g)", value: "protein" },
-					{ text: "Iron (%)", value: "iron" },
+				store_headers: [
+					{ text: "Name", value: "name" },
+					{ text: "Address", value: "address" },
+					{ text: "Longtitude", value: "longtitude" },
+					{ text: "Latitude", value: "latitude" },
+					{ text: "Fullness", value: "fullness" },
+					{ text: "Capacity", value: "capacity" },
 				],
-				table_data: [
+				product_headers: [
+					{ text: "Name", value: "name" },
+					{ text: "price", value: "price" },
+					{ text: "seasonDay", value: "seasonDay" },
+				],
+				store_data: [
 					{
-						name: "Frozen Yogurt",
-						calories: 159,
-						fat: 6.0,
-						carbs: 24,
-						protein: 4.0,
-						iron: "1%",
+						name: "Магазин 1",
+						address: "Тимура фрунзе, 4",
+						longtitude: 0,
+						latitude: 0,
+						fullness: 30,
+						capacity: 14,
+						minRequired: 10,
+						shop: false,
+						shopID: 1,
+					},
+					{
+						name: "Магазин 2",
+						address: "Проспект мира, 8б",
+						longtitude: 0,
+						latitude: 0,
+						fullness: 80,
+						capacity: 27,
+						minRequired: 15,
+						shop: true,
+						shopID: 2,
+					},
+				],
+				product_data: [
+					{
+						name: "Bread",
+						price: 60,
+						seasonDay: 365,
 					},
 					{
 						name: "Ice cream sandwich",
-						calories: 237,
-						fat: 9.0,
-						carbs: 37,
-						protein: 4.3,
-						iron: "1%",
+						price: 140,
+						seasonDay: 365,
 					},
 					{
 						name: "Eclair",
-						calories: 262,
-						fat: 16.0,
-						carbs: 23,
-						protein: 6.0,
-						iron: "7%",
+						price: 80,
+						seasonDay: 365,
 					},
 					{
 						name: "Cupcake",
-						calories: 305,
-						fat: 3.7,
-						carbs: 67,
-						protein: 4.3,
-						iron: "8%",
+						price: 70,
+						seasonDay: 365,
 					},
 					{
 						name: "Gingerbread",
-						calories: 356,
-						fat: 16.0,
-						carbs: 49,
-						protein: 3.9,
-						iron: "16%",
+						price: 40,
+						seasonDay: 365,
 					},
 					{
 						name: "Jelly bean",
-						calories: 375,
-						fat: 0.0,
-						carbs: 94,
-						protein: 0.0,
-						iron: "0%",
+						price: 110,
+						seasonDay: 365,
 					},
 					{
 						name: "Lollipop",
-						calories: 392,
-						fat: 0.2,
-						carbs: 98,
-						protein: 0,
-						iron: "2%",
+						price: 30,
+						seasonDay: 365,
 					},
 					{
 						name: "Honeycomb",
-						calories: 408,
-						fat: 3.2,
-						carbs: 87,
-						protein: 6.5,
-						iron: "45%",
+						price: 40,
+						seasonDay: 365,
 					},
 					{
 						name: "Donut",
-						calories: 452,
-						fat: 25.0,
-						carbs: 51,
-						protein: 4.9,
-						iron: "22%",
+						price: 45,
+						seasonDay: 365,
 					},
 					{
 						name: "KitKat",
-						calories: 518,
-						fat: 26.0,
-						carbs: 65,
-						protein: 7,
-						iron: "6%",
+						price: 65,
+						seasonDay: 365,
 					},
 				],
 			};
 		},
-		mounted() {
+		created() {
 			axios.get("http://127.0.0.1:5000/api/locations").then((response) => {
 				this.locations = response.data.locations;
 			});

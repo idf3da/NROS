@@ -4,16 +4,16 @@
 			<v-img src="projectIconWhite.png" max-height="40" max-width="40"></v-img>
 			<div><v-toolbar-title>NROS</v-toolbar-title></div>
 			<v-spacer></v-spacer>
-            <v-tabs centered v-if="currentRouteName === 'DataChecker'">
-                <v-tab link dense to="/data_checker/types">Types</v-tab>
-                <v-tab link dense to="/data_checker/items">Items</v-tab>
-                <v-tab link dense to="/data_checker/groups">Groups</v-tab>
-                <v-tab link dense to="/data_checker/locations">Locations</v-tab>
-            </v-tabs>
+			<v-tabs centered v-if="currentRouteName === 'DataChecker'">
+				<v-tab link dense to="/data_checker/types">Types</v-tab>
+				<v-tab link dense to="/data_checker/items">Items</v-tab>
+				<v-tab link dense to="/data_checker/groups">Groups</v-tab>
+				<v-tab link dense to="/data_checker/locations">Locations</v-tab>
+			</v-tabs>
 			<v-menu absolute offset-y close-on-click transition="scale-transition">
 				<template
 					v-slot:activator="{
-						on
+						on,
 					}"
 				>
 					<v-btn text @click.stop="notifocationsListExpanded = !notifocationsListExpanded" dark v-on="on">
@@ -33,7 +33,7 @@
 			<v-menu offset-y close-on-click>
 				<template
 					v-slot:activator="{
-						on
+						on,
 					}"
 				>
 					<v-btn text color="red" @click.stop="userMenuExpanded = !userMenuExpanded" dark v-on="on">
@@ -53,7 +53,7 @@
 			</v-menu>
 		</v-app-bar>
 
-		<v-navigation-drawer v-model="sidebar" hide-overlay mini-variant-width="50px" app clipped permanent expand-on-hover floating width="170px">
+		<v-navigation-drawer hide-overlay mini-variant-width="50px" app clipped permanent expand-on-hover floating width="170px">
 			<v-list dense>
 				<v-list-item link dense to="/main">
 					<v-list-item-action>
@@ -140,17 +140,13 @@
 				Close
 			</v-btn>
 		</v-snackbar>
-
-		<v-footer hide>
-			<span>&copy; ME IRL&trade; </span>
-		</v-footer>
 	</v-app>
 </template>
 
 <script>
 	export default {
 		props: {
-			source: String
+			source: String,
 		},
 		data: () => ({
 			drawerExpanded: true,
@@ -161,23 +157,23 @@
 			userMenuItems: [
 				{
 					title: "Profile",
-					link: "/profile"
+					link: "/profile",
 				},
 				{
 					title: "Settings",
-					link: "/settings"
-				}
+					link: "/settings",
+				},
 			],
 			notificationItems: [
 				{
 					title: "Notification 1",
-					link: "/notifications/1"
+					link: "/notifications/1",
 				},
 				{
 					title: "Notification 2",
-					link: "/notifications/2"
-				}
-			]
+					link: "/notifications/2",
+				},
+			],
 		}),
 		created() {
 			this.$vuetify.theme.dark = true;
@@ -192,9 +188,9 @@
 			notificationBadgeNum: function() {
 				return this.notificationItems.length;
 			},
-			currentRouteName: function () {
-                return this.$route.name
-            }
-		}
+			currentRouteName: function() {
+				return this.$route.name;
+			},
+		},
 	};
 </script>
