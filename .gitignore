@@ -2,5 +2,5 @@
 *.pyc
 /api_backend/venv/
 /venv/
-api_backend/venv/
+/api_backend/migrations/
 /migrations/
