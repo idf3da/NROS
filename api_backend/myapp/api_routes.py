@@ -52,6 +52,12 @@ def create_type_with_id(query, product_type_id):
                        price=query['price'], seasonality=query['seasonality'])
 
 
+
+
+
+
+
+
 def json_point(point):
     """ Function converts Point object into dictionary
         :param point: (Point) Point object
@@ -342,226 +348,37 @@ def make_prediction(query):
        'listForvector':i.listForvector,'realSpros':i.realSpros,'price':i.product_type.price})
     return utils.main_prediction(full)
 
+class ListProductTypesApi(Resource):
+    """ Class that gets all Product Types or creates new """
 
-def json_warehouse(warehouse):
-    """ Function converts Warehouse object into dictionary
-        :param warehouse: (Warehouse) Warehouse object
-        :return dict: dictionary containing converted Warehouse
+    @staticmethod
+    def get():
+        """ Method used to get list of all Product Types
+            :return: list[ProductType]
         """
-    return {'id': warehouse.id, 'location_id': warehouse.location_id,
-            'fullness': warehouse.fullness, 'capacity': warehouse.capacity}
+        product_types = ProductType.query.all()
+        return {'product_types': [json_type(product_type) for product_type
+                                  in
+                                  product_types]}, 200
 
-
-def create_warehouse(query):
-    """ Function creates Warehouse from query.
-        :param query: (dict) Example: { location_id: 1,
-                                        fullness: 10,
-                                        capacity: 20 }
-        :return Warehouse: Warehouse object
-    """
-    return Warehouse(location_id=query['location_id'], fullness=query[
-        'fullness'], capacity=query['capacity'])
-
-
-def create_warehouse_with_id(query, warehouse_id):
-    """ Function creates Warehouse with id from query.
-        :param query: (dict) Example: { location_id: 1,
-                                        fullness: 10,
-                                        capacity: 20 }
-        :param warehouse_id: (int)
-        :return Warehouse: Warehouse object
-    """
-    return Warehouse(id=warehouse_id, location_id=query['location_id'],
-                     fullness=query['fullness'], capacity=query['capacity'])
-
-
-def json_shop(shop):
-    """ Function converts Shop object into dictionary
-        :param shop: (Shop) Shop object
-        :return dict: dictionary containing converted Shop
+    @staticmethod
+    def post():
+        """ Create new Product Type
+            Example product type post query:
+            {
+                "count": 0,
+                "name": "Salt",
+                "price": 10,
+                "seasonality": 0
+            }
+            :return: jsonifyed ProductType
         """
-    return {'id': shop.id, 'location_id': shop.location_id,
-            'fullness': shop.fullness, 'capacity': shop.capacity}
-
-
-def create_shop(query):
-    """ Function creates Shop from query.
-        :param query: (dict) Example: { location_id: 1,
-                                        fullness: 10,
-                                        capacity: 20 }
-        :return Shop: Shop object
-    """
-    return Shop(location_id=query['location_id'], fullness=query[
-        'fullness'], capacity=query['capacity'])
-
-
-def create_shop_with_id(query, shop_id):
-    """ Function creates Shop with id from query.
-        :param query: (dict) Example: { location_id: 1,
-                                        fullness: 10,
-                                        capacity: 20 }
-        :param shop_id: (int)
-        :return Shop: Shop object
-    """
-    return Shop(id=shop_id, location_id=query['location_id'],
-                fullness=query['fullness'], capacity=query['capacity'])
-
-
-def json_lstm(lstm):
-    """ Function converts LSTM object into dictionary
-        :param lstm: (LSTM) LSTM object
-        :return dict: dictionary containing converted LSTM
-        """
-    return {'id': lstm.id, 'shop_id': lstm.shop_id,
-            'product_type_id': lstm.product_type_id, 'alpha': lstm.alpha,
-            'beta': lstm.beta, 'gamma': lstm.gamma}
-
-
-def create_lstm(query):
-    """ Function creates LSTM from query.
-        :param query: (dict) Example: { shop_id: 1,
-                                        product_type_id: 1,
-                                        alpha: 0.1,
-                                        beta: 0.1,
-                                        gamma: 0.1
-                                      }
-        :return LSTM: LSTM object
-    """
-    before_range = None
-    if 'before_range' in query:
-        before_range = query['before_range'] + 1
-    data = Sale.query.filter(Sale.shop_id == query['shop_id']).all()
-    # print(data)
-    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
-    models = LSTM.query.filter(LSTM.shop_id == query['shop_id'],
-                               LSTM.product_type_id == query['product_type_id']).all()  # +user_id
-    if models == []:
-        slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
-    else:
-        slen = models[0].product_type.seasonality
-    a, b, g, model, scaler, prediction = utils.trainModels(data, before_range, query['product_type_id'], models, slen)
-    return LSTM(shop_id=query['shop_id'], product_type_id=query[
-        'product_type_id'], alpha=a, beta=b,
-                gamma=g, model=model, scope=scaler, prediction=prediction[0][0])
-
-
-def create_lstm_with_id(query, lstm_id):
-    """ Function creates LSTM with id from query.
-        :param query: (dict) Example: { shop_id: 1,
-                                        product_type_id: 1,
-                                        alpha: 0.1,
-                                        beta: 0.1,
-                                        gamma: 0.1
-                                      }
-        :param lstm_id: (int)
-        :return LSTM: LSTM object
-    """
-    before_range = None
-    if 'before_range' in query:
-        before_range = query['before_range'] + 1
-    data = Sale.query.filter(Sale.shop_id == query['shop_id']).all()
-    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
-    models = LSTM.query.filter(LSTM.shop_id == query['shop_id'],
-                               LSTM.product_type_id == query['product_type_id']).all()  # +user_id
-    if models == []:
-        slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
-    else:
-        slen = models[0].product_type.seasonality
-    a, b, g, model, scaler, prediction = utils.trainModels(data, before_range, query['product_type_id'], models, slen)
-    return LSTM(id=lstm_id, shop_id=query['shop_id'], product_type_id=query[
-        'product_type_id'], alpha=a, beta=b,
-                gamma=g, model=model, scope=scaler, prediction=prediction[0][0])
-
-
-def json_sale(sale):
-    """ Function converts Sale object into dictionary
-        :param sale: (Sale) Sale object
-        :return dict: dictionary containing converted Sale
-        """
-    return {'id': sale.id, 'date': str(sale.date),
-            'product_item_id': sale.product_item_id, 'shop_id': sale.shop_id}
-
-
-def create_sale(query):
-    """ Function creates Sale from query.
-        :param query: (dict) Example: { date: '2011-11-04 00:05:23',
-                                        product_item_id: 10,
-                                        shop_id: 20 }
-        :return Sale: Sale object
-    """
-    return Sale(date=datetime.datetime.fromisoformat(query['date']),
-                product_item_id=query['product_item_id'],
-                shop_id=query['shop_id'])
-
-
-def create_sale_with_id(query, sale_id):
-    """ Function creates Sale with id from query.
-        :param query: (dict) Example: { date: '2011-11-04 00:05:23',
-                                        product_item_id: 10,
-                                        shop_id: 20 }
-        :param sale_id: (int)
-        :return Sale: Sale object
-    """
-    return Sale(id=sale_id, date=datetime.datetime.fromisoformat(query['date']),
-                product_item_id=query['product_item_id'],
-                shop_id=query['shop_id'])
-
-
-def make_prediction(query):
-    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
-
-    # warLen = 5
-    # shopLen = 10
-    # sklads = [{'sklad':j,'заполненость':1,'capacity':10000,'minimum':0,'shops':[[i,{'заполненость':1},{'capacity':10000},{'minimum':0}] for i in range(0,shopLen)]} for j in range(0,warLen)]
-
-    # shops = Shop.query.all()
-    # warhouse = Warehouse.query.all()
-    sklads = []
-    # for i in warhouse:
-    #     sklads.append({i:[shops]})
-    # print(sklads)
-    stepG = query['step']
-    models = LSTM.query.filter(LSTM.product_type_id == query['product_type_id']).all()  # пока всё
-    slen = ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality
-    full = []
-    # print(ProductItem.query)
-    for i in models:
-        # print(pickle.loads(i.model).layers[0].input_shape)
-        # model = pickle.loads(i.model)
-        # test_shape = 2
-        # pickle.loads(i.model).layers[0].input_shape[1]
-        before_range = pickle.loads(i.model).layers[0].input_shape[-1] + 2  # i.before_range
-        # print(model.layers[0].input_shape)
-
-        sales = db.engine.execute('''
-        SELECT sale.date::date, sum(product_item.count)
-        FROM sale,product_item
-        WHERE sale.shop_id = {0} AND product_item.product_type_id = {1}
-        GROUP BY 1 ORDER BY 1 DESC LIMIT {2}
-        '''.format(i.shop_id, query['product_type_id'], before_range)).fetchall()
-        steps = db.engine.execute('''
-        SELECT sale.date::date, sum(product_item.count)
-        FROM sale,product_item
-        WHERE sale.shop_id = {0} AND product_item.product_type_id = {1}
-        GROUP BY 1 ORDER BY 1 DESC LIMIT {2}
-        '''.format(i.shop_id, query['product_type_id'],
-                   stepG + before_range - 1 if stepG >= before_range - 2 else before_range + 3)).fetchall()
-        # print(step)
-        year = db.engine.execute('''
-        SELECT sale.date::date, sum(product_item.count)
-        FROM sale,product_item
-        WHERE sale.shop_id = {0} AND product_item.product_type_id = {1}
-        GROUP BY 1 ORDER BY 1 DESC LIMIT {2}
-        '''.format(i.shop_id, query['product_type_id'], 365)).fetchall()
-        # print(sales)
-        # war_id = Warhouse.query.filter(Warhouse.shop.id == models[i].shop_id).all()[0].id
-
-        war_id = 1
-        full.append({'sales': sales, 'model': i, 'shop': Shop.query.filter(Shop.id == i.shop_id).first(),
-                     'war': Warehouse.query.filter(Warehouse.id == war_id).first(), 'before_range': before_range,
-                     'steps': steps, 'slen': slen, 'year': year})
-        # print(full[-1])
-    return utils.main_prediction(full)
+        if not request.json:
+            abort(400, "No data")
+        product_type = create_type(request.json)
+        db.session.add(product_type)
+        db.session.commit()
+        return {'product_type': json_type(product_type)}, 201
 
 
 def create_user(name, email, password_hash, privilege_level, token):
@@ -890,6 +707,22 @@ class ImportApi(Resource):
     @staticmethod
     def get(user_id):
         user = User(user_id)
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            id = item['id']
+            address = item['address']
+            user_uuid = item['accountId']
+            point = Point(id=id, address=address,user_id=user_uuid, fullness=0)
+            db.session.add(point)
+        db.session.commit()
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/report/stock/bystore', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            for store_item in item['stockByStore']:
+                if store_item['stock'] > 0:
+                    point = Point.query.get(store_item['meta']['href'].split('/')[-1])
+                    point.fullness += store_item['stock']
+                    db.session.add(point)
+        db.session.commit()
         response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             id = item['id']
@@ -902,7 +735,13 @@ class ImportApi(Resource):
             sale = Sale(id=id,date=date,point_id=point_id, count=count,
                         product_type_id=product_type_id,price=price,user_id=user_uuid)
             db.session.add(sale)
-            db.session.commit()
+        db.session.commit()
+        # если мыразличаем склады и магазины то код дальше не нужен
+        # stores = Point.query.all()
+        # response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move',  auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        # for item in response.json()['rows']:
+        #     id = item['sourceStore']['meta']['href'].split('/')[-1]
+
 
 
 class AuthenticationApi(Resource):
