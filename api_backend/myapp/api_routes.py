@@ -597,7 +597,7 @@ class ListSalesApi(Resource):
         """ Create new Sale
             Example sale post query:
             {
-                "date": '2011-11-04 00:05:23',
+                "date": "2011-11-04 00:05:23",
                 "product_item_id": 10,
                 "shop_id": 20
             }
@@ -664,11 +664,19 @@ class PredictApi(Resource):
 
 
 
-class ImportApi(Resource):
+class IntegrateApi(Resource):
     """ Class that imports data from moysklad.ru """
     @staticmethod
-    def get(user_id):
-        """ Method that imports all data from moysklad.ru """
+    def post():
+        """ Method that imports all data from moysklad.ru
+            Example query:
+            {
+                "user_id": 1
+            }
+        """
+        if not request.json:
+            abort(400, "No data")
+        user_id = request.json['user_id']
         user = User.query.get_or_404(user_id)
         response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/product', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
@@ -739,9 +747,9 @@ class AuthenticationApi(Resource):
         """ Method used to sign in
             Example of query:
             {
-                "name": 'Tester',
-                "password": 'qwerty123',
-                "remember": 'true'
+                "name": "Tester",
+                "password": "qwerty123",
+                "remember": "true"
             }
             :return: list[]
         """
@@ -762,9 +770,9 @@ class AuthenticationApi(Resource):
         """ Method used to sign up
             Example of query:
             {
-                "name": 'Tester',
-                "password": 'qwerty123',
-                "email": 'tester@ya.ru'
+                "name": "Tester",
+                "password": "qwerty123",
+                "email": "tester@ya.ru"
             }
             :return: list[]
         """
@@ -810,7 +818,7 @@ class AuthenticationApi(Resource):
         return {'is_success': True, 'name': name, 'token': token}
 
 
-class IntegrateUser(Resource):
+class IntegrateUserApi(Resource):
     """ Class that integrates user with moysklad.ru """
     @staticmethod
     def post():
@@ -818,26 +826,28 @@ class IntegrateUser(Resource):
             Example of query:
             {
                 "user_id": 1,
-                "moysklad_password": '1231231',
-                "moysklad_login": 'abc@def'
+                "moysklad_password": "1231231",
+                "moysklad_login": "abc@def"
             }
             :return: list[]
         """
         if not request.json:
             return abort(400, "No data")
-        request_json= request.json()
+        request_json = request.json
         user = User.query.get_or_404(request_json['user_id'])
         user.moysklad_login = request_json['moysklad_login']
         user.moysklad_password = request_json['moysklad_password']
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move?expand=positions', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        user.moysklad_id = response.json()['rows'][0]['accountId']
         db.session.add(user)
         db.session.commit()
         return {'is_success': True}
 
 
-api.add_resource(ImportApi, '/api/import/<user_id>')
-api.add_resource(IntegrateUser, '/api/user/integrate')
-api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
+api.add_resource(IntegrateApi, '/api/user/integrate')
+api.add_resource(IntegrateUserApi, '/api/authentication/integrate')
 api.add_resource(AuthenticationApi, '/api/authentication')
+api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
 api.add_resource(PointApi, '/api/points/<point_id>')
 api.add_resource(LSTMApi, '/api/lstms/<lstm_id>')
 api.add_resource(SaleApi, '/api/sales/<sale_id>')
