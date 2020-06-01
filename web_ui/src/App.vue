@@ -35,26 +35,29 @@
                 </v-list>
             </v-menu>-->
 
-            <v-menu v-if="isAuthenticated" offset-y close-on-click v-model="userMenuExpanded">
-                <template v-slot:activator="{ on }">
-                    <v-btn text color="red" @click="userMenuExpanded = !userMenuExpanded" dark v-on="on">
-                        {{ currentName }}
-                        <v-icon right>{{ userMenuExpanded ? "mdi-menu-down" : "mdi-menu-up" }}</v-icon>
-                    </v-btn>
-                </template>
+            <div v-if="isAuthenticated">
+                <v-menu offset-y close-on-click v-model="userMenuExpanded">
+                    <template v-slot:activator="{ on }">
+                        <v-btn text color="red" @click.stop="userMenuExpanded = !userMenuExpanded" dark v-on="on">
+                            {{ currentName }}
+                            <v-icon right>{{ userMenuExpanded ? "mdi-menu-down" : "mdi-menu-up" }}</v-icon>
+                        </v-btn>
+                    </template>
 
-                <v-list>
-                    <v-list-item link dense v-for="(notificationItem, index) in userMenuItems" :key="index" router
-                                 :to="notificationItem.link">
-                        <v-list-item-title>{{ notificationItem.title }}</v-list-item-title>
-                    </v-list-item>
-                    <v-list-item link dense router>
-                        <v-list-item-title @click="logout">Log out</v-list-item-title>
-                    </v-list-item>
-                </v-list>
-            </v-menu>
+                    <v-list>
+                        <v-list-item link dense v-for="(notificationItem, index) in userMenuItems" :key="index" router
+                                     :to="notificationItem.link">
+                            <v-list-item-title>{{ notificationItem.title }}</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item link dense router>
+                            <v-list-item-title @click="logout">Log out</v-list-item-title>
+                        </v-list-item>
+                    </v-list>
+                </v-menu>
+            </div>
 
             <v-btn v-else text color="red" @click="signInDialog = true">Authentication</v-btn>
+
         </v-app-bar>
 
         <v-navigation-drawer v-if="currentRouteName !== 'Home'" v-model="sidebar" hide-overlay app clipped permanent
