@@ -51,9 +51,9 @@ class Sale(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains ProductItem Sale """
     id = db.Column(db.String, primary_key=True)
     date = db.Column(db.DateTime)
-    point_id = db.Column(db.Integer, db.ForeignKey('point.id'))
+    point_id = db.Column(db.String, db.ForeignKey('point.id'))
     count = db.Column(db.Integer)
-    product_type_id = db.Column(db.Integer, db.ForeignKey('product_type.id'))
+    product_type_id = db.Column(db.String, db.ForeignKey('product_type.id'))
     price = db.Column(db.Integer)
     user_id = db.Column(db.String, db.ForeignKey('user.moysklad_id'))
 
@@ -61,8 +61,8 @@ class Sale(db.Model):  # pylint: disable=too-few-public-methods
 class LSTM(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains LSTM."""
     id = db.Column(db.Integer, primary_key=True)
-    point_id = db.Column(db.Integer, db.ForeignKey('point.id'))
-    product_type_id = db.Column(db.Integer, db.ForeignKey('product_type.id'))
+    point_id = db.Column(db.String, db.ForeignKey('point.id'))
+    product_type_id = db.Column(db.String, db.ForeignKey('product_type.id'))
     alpha = db.Column(db.Float)
     beta = db.Column(db.Float)
     gamma = db.Column(db.Float)
