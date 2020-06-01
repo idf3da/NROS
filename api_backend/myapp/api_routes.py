@@ -2,20 +2,17 @@
 import datetime
 import hashlib
 import pickle
+from functools import wraps
 
 import keras.backend.tensorflow_backend as tb  # ! костыль
 import requests
-import sqlalchemy as sa
-import pickle
 from flask import request, abort
 from flask_restful import Resource
 from myapp import api
 from myapp.__init__ import db
 from myapp.consts import Consts
+from myapp.models import ProductType, Point, LSTM, Sale, User
 from myapp.utils import Utils
-from myapp.models import ProductType,Point, LSTM, Sale, User
-
-import keras.backend.tensorflow_backend as tb #! костыль
 
 
 def json_type(product_type):
@@ -53,12 +50,6 @@ def create_type_with_id(query, product_type_id):
                        price=query['price'], seasonality=query['seasonality'])
 
 
-
-
-
-
-
-
 def json_point(point):
     """ Function converts Point object into dictionary
         :param point: (Point) Point object
@@ -66,8 +57,8 @@ def json_point(point):
         """
     return {'id': point.id,
             'fullness': point.fullness,
-            'address':point.address,'latitude':point.latitude,'longitude':point.longitude,
-            'capacity':point.capacity,'minimum':point.minimum,'shop':point.shop, 'shop_id':point.shop_id}
+            'address': point.address, 'latitude': point.latitude, 'longitude': point.longitude,
+            'capacity': point.capacity, 'minimum': point.minimum, 'shop': point.shop, 'shop_id': point.shop_id}
 
 
 def create_point(query):
@@ -78,7 +69,8 @@ def create_point(query):
         :return Point: Point object
     """
     return Point(address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
-     latitude=query['latitude'],longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'], shop_id = query['shop_id'])
+                 latitude=query['latitude'], longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'],
+                 shop_id=query['shop_id'])
 
 
 def create_point_with_id(query, point_id):
@@ -89,8 +81,8 @@ def create_point_with_id(query, point_id):
         :param shop_id: (int)
         :return Shop: Shop object
     """
-    return Point(id = point_id,address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
-     latitude=query['latitude'],longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'])
+    return Point(id=point_id, address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
+                 latitude=query['latitude'], longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'])
 
 
 def json_lstm(lstm):
@@ -100,9 +92,9 @@ def json_lstm(lstm):
         """
     return {'id': lstm.id, 'point_id': lstm.point_id,
             'product_type_id': lstm.product_type_id, 'alpha': lstm.alpha,
-            'beta': lstm.beta, 'gamma': lstm.gamma, 'prediction':lstm.prediction,
-            'before_range':lstm.before_range,'lstm_pred':lstm.lstm_pred,
-            'listForvector':lstm.listForvector,'realSpros':lstm.realSpros}
+            'beta': lstm.beta, 'gamma': lstm.gamma, 'prediction': lstm.prediction,
+            'before_range': lstm.before_range, 'lstm_pred': lstm.lstm_pred,
+            'listForvector': lstm.listForvector, 'realSpros': lstm.realSpros}
 
 
 def create_lstm(query):
@@ -135,9 +127,11 @@ def create_lstm(query):
             and sale.point_id = {0}
             and sale.product_type_id = {1}
         group by 1 order by 1 desc
-    '''.format(query['point_id'], query['product_type_id'])).fetchall() #and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
-    tb._SYMBOLIC_SCOPE.value = True #! костыль
-    model = LSTM.query.filter(LSTM.point_id == query['point_id'],LSTM.product_type_id==query['product_type_id']).first() #+user_id
+    '''.format(query['point_id'], query[
+        'product_type_id'])).fetchall()  # and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
+    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+    model = LSTM.query.filter(LSTM.point_id == query['point_id'],
+                              LSTM.product_type_id == query['product_type_id']).first()  # +user_id
     if model == None:
         slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
     else:
@@ -148,7 +142,9 @@ def create_lstm(query):
         if before_range != query['before_range']:
             model = None
             before_range = query['before_range']
-    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModelsAndPredict(data,before_range + 1,model,slen) #+1
+    a, b, g, model, scaler, prediction, before_range, lstm_prediciton = utils.trainModelsAndPredict(data,
+                                                                                                    before_range + 1,
+                                                                                                    model, slen)  # +1
     stepG = 15
 
     if a == -1:
@@ -169,9 +165,10 @@ def create_lstm(query):
                 and sale.point_id = {0}
                 and sale.product_type_id = {1}
             group by 1 order by 1 desc limit {2}
-        '''.format(query['point_id'], query['product_type_id'], stepG+3 if stepG >= before_range else before_range+3)).fetchall()
-        contRes = utils.predict_step(steps,before_range = before_range+1,scaler = scaler,model = model)
-        spros,listForvector,realSpros = lstm_prediciton,contRes[0],contRes[1]
+        '''.format(query['point_id'], query['product_type_id'],
+                   stepG + 3 if stepG >= before_range else before_range + 3)).fetchall()
+        contRes = utils.predict_step(steps, before_range=before_range + 1, scaler=scaler, model=model)
+        spros, listForvector, realSpros = lstm_prediciton, contRes[0], contRes[1]
     else:
         steps = db.engine.execute('''
         with dates as (
@@ -191,16 +188,15 @@ def create_lstm(query):
                 and sale.product_type_id = {1}
             group by 1 order by 1 desc limit {2}
         '''.format(query['point_id'], query['product_type_id'], 367)).fetchall()
-        resR = utils.predictWinters([row[1] for row in steps],a,b,g,slen,stepG)
-        spros,listForvector,realSpros = prediction,resR[0],resR[1]
+        resR = utils.predictWinters([row[1] for row in steps], a, b, g, slen, stepG)
+        spros, listForvector, realSpros = prediction, resR[0], resR[1]
 
     # print(spros,listForvector,realSpros,before_range,lstm_prediciton,a,b,g)
-    return LSTM(id = model_id,point_id=query['point_id'], product_type_id=query[
-            'product_type_id'], alpha=a, beta=b,
-                    gamma=g,model = pickle.dumps(model),scope = pickle.dumps(scaler),prediction = prediction,
-                    lstm_pred = lstm_prediciton,before_range = before_range,
-                    listForvector = listForvector,realSpros = realSpros)
-
+    return LSTM(id=model_id, point_id=query['point_id'], product_type_id=query[
+        'product_type_id'], alpha=a, beta=b,
+                gamma=g, model=pickle.dumps(model), scope=pickle.dumps(scaler), prediction=prediction,
+                lstm_pred=lstm_prediciton, before_range=before_range,
+                listForvector=listForvector, realSpros=realSpros)
 
 
 def create_lstm_with_id(query, lstm_id):
@@ -233,9 +229,10 @@ def create_lstm_with_id(query, lstm_id):
             and sale.point_id = {0}
             and sale.product_type_id = {1}
         group by 1 order by 1 desc
-    '''.format(query['point_id'], query['product_type_id'])).fetchall() #and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
-    tb._SYMBOLIC_SCOPE.value = True #! костыль
-    model = LSTM.query.filter(LSTM.id == lstm_id).first() #+user_id
+    '''.format(query['point_id'], query[
+        'product_type_id'])).fetchall()  # and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
+    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+    model = LSTM.query.filter(LSTM.id == lstm_id).first()  # +user_id
     if model == None:
         slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
     else:
@@ -246,7 +243,9 @@ def create_lstm_with_id(query, lstm_id):
         if before_range != query['before_range']:
             model = None
             before_range = query['before_range']
-    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModelsAndPredict(data,before_range + 1,model,slen)
+    a, b, g, model, scaler, prediction, before_range, lstm_prediciton = utils.trainModelsAndPredict(data,
+                                                                                                    before_range + 1,
+                                                                                                    model, slen)
     stepG = 15
 
     if a == -1:
@@ -267,9 +266,10 @@ def create_lstm_with_id(query, lstm_id):
                 and sale.point_id = {0}
                 and sale.product_type_id = {1}
             group by 1 order by 1 desc limit {2}
-        '''.format(query['point_id'], query['product_type_id'], stepG+3 if stepG >= before_range else before_range+3)).fetchall()
-        contRes = utils.predict_step(steps,before_range = before_range+1,scaler = scaler,model = model)
-        spros,listForvector,realSpros = lstm_prediciton,contRes[0],contRes[1]
+        '''.format(query['point_id'], query['product_type_id'],
+                   stepG + 3 if stepG >= before_range else before_range + 3)).fetchall()
+        contRes = utils.predict_step(steps, before_range=before_range + 1, scaler=scaler, model=model)
+        spros, listForvector, realSpros = lstm_prediciton, contRes[0], contRes[1]
     else:
         steps = db.engine.execute('''
         with dates as (
@@ -289,15 +289,15 @@ def create_lstm_with_id(query, lstm_id):
                 and sale.product_type_id = {1}
             group by 1 order by 1 desc limit {2}
         '''.format(query['point_id'], query['product_type_id'], 367)).fetchall()
-        resR = utils.predictWinters([row[1] for row in steps],a,b,g,slen,stepG)
-        spros,listForvector,realSpros = prediction,resR[0],resR[1]
+        resR = utils.predictWinters([row[1] for row in steps], a, b, g, slen, stepG)
+        spros, listForvector, realSpros = prediction, resR[0], resR[1]
 
     # print(spros,listForvector,realSpros)
-    return LSTM(id = lstm_id,point_id=query['point_id'], product_type_id=query[
-            'product_type_id'], alpha=a, beta=b,
-                    gamma=g,model = pickle.dumps(model),scope = pickle.dumps(scaler),prediction = prediction,
-                    lstm_pred = lstm_prediciton,before_range = before_range,
-                    listForvector = listForvector,realSpros = realSpros)
+    return LSTM(id=lstm_id, point_id=query['point_id'], product_type_id=query[
+        'product_type_id'], alpha=a, beta=b,
+                gamma=g, model=pickle.dumps(model), scope=pickle.dumps(scaler), prediction=prediction,
+                lstm_pred=lstm_prediciton, before_range=before_range,
+                listForvector=listForvector, realSpros=realSpros)
 
 
 def json_sale(sale):
@@ -306,7 +306,7 @@ def json_sale(sale):
         :return dict: dictionary containing converted Sale
         """
     return {'id': sale.id, 'date': str(sale.date),
-            'count': sale.count, 'point_id': sale.point_id, 'product_type_id':sale.product_type_id}
+            'count': sale.count, 'point_id': sale.point_id, 'product_type_id': sale.product_type_id}
 
 
 def create_sale(query):
@@ -319,7 +319,7 @@ def create_sale(query):
     return Sale(date=datetime.datetime.fromisoformat(query['date']),
                 product_type_id=query['product_type_id'],
                 point_id=query['point_id'],
-                count = query['count'])
+                count=query['count'])
 
 
 def create_sale_with_id(query, sale_id):
@@ -333,26 +333,28 @@ def create_sale_with_id(query, sale_id):
     return Sale(id=sale_id, date=datetime.datetime.fromisoformat(query['date']),
                 product_type_id=query['product_type_id'],
                 point_id=query['point_id'],
-                count = query['count'])
-
+                count=query['count'])
 
 
 def json_prediction(prediction):
     return {
-        'f1':prediction[0][0],
-        'f2':prediction[0][1],
-        'war_c':prediction[1][0],
-        'shop_c':prediction[1][1],
-        'war_id':prediction[2][0],
-        'shop_id':prediction[2][1],
+        'f1': prediction[0][0],
+        'f2': prediction[0][1],
+        'war_c': prediction[1][0],
+        'shop_c': prediction[1][1],
+        'war_id': prediction[2][0],
+        'shop_id': prediction[2][1],
     }
+
+
 def make_prediction(query):
-    tb._SYMBOLIC_SCOPE.value = True #! костыль
-    models = LSTM.query.filter(LSTM.product_type_id==query['product_type_id']).all() #пока всё
+    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+    models = LSTM.query.filter(LSTM.product_type_id == query['product_type_id']).all()  # пока всё
     full = []
     for i in models:
-        full.append({'spros':i.lstm_pred if i.alpha == -1 else i.prediction, 'shop' : Point.query.filter(Point.id == i.point_id).first(),
-       'listForvector':i.listForvector,'realSpros':i.realSpros,'price':i.product_type.price})
+        full.append({'spros': i.lstm_pred if i.alpha == -1 else i.prediction,
+                     'shop': Point.query.filter(Point.id == i.point_id).first(),
+                     'listForvector': i.listForvector, 'realSpros': i.realSpros, 'price': i.product_type.price})
     return utils.main_prediction(full)
 
 
@@ -367,14 +369,44 @@ def create_user(name, email, password_hash, privilege_level, token):
     return User(name=name, email=email, password_hash=password_hash, privilege_level=1, token=token)
 
 
+def require_authentication(func):
+    """ Annotation requires token
+
+        @require_api_token
+        def sample_method(user):
+            return {"Hey, " + user.name + ", you are authenticated!"}
+
+    """
+
+    @wraps(func)
+    def check_token(*args, **kwargs):
+        user = None
+
+        if not 'Authorization' in request.headers:
+            invalid_token = True
+        else:
+            token = request.headers['Authorization']
+            user = User.query.filter(User.token == token).first()
+            invalid_token = user is None
+
+        if invalid_token:
+            return {"message": "Invalid token."}, 999
+
+        return func(*args, **kwargs, user=user)
+
+    return check_token
+
+
 class ListProductTypesApi(Resource):
     """ Class that gets all Product Types or creates new """
 
     @staticmethod
-    def get():
+    @require_authentication
+    def get(user):
         """ Method used to get list of all Product Types
             :return: list[ProductType]
         """
+
         product_types = ProductType.query.all()
         return {'product_types': [json_type(product_type) for product_type
                                   in
@@ -437,6 +469,7 @@ class ProductTypesApi(Resource):
         db.session.add(product_type)
         db.session.commit()
         return {'product_type': json_type(product_type)}, 201
+
 
 class ListPointsApi(Resource):
     """ Class that gets all Shops or creates new """
@@ -650,6 +683,7 @@ class SaleApi(Resource):
         db.session.commit()
         return {'sale': json_sale(sale)}, 201
 
+
 class PredictApi(Resource):
     """ Class that make predictions """
 
@@ -663,9 +697,9 @@ class PredictApi(Resource):
         return {'predictions': [json_prediction(prediction) for prediction in predictions]}, 200
 
 
-
 class IntegrateApi(Resource):
     """ Class that imports data from moysklad.ru """
+
     @staticmethod
     def post():
         """ Method that imports all data from moysklad.ru
@@ -678,24 +712,27 @@ class IntegrateApi(Resource):
             abort(400, "No data")
         user_id = request.json['user_id']
         user = User.query.get_or_404(user_id)
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/product', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/product',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             id = item['id']
             name = item['name']
-            user_id= item['accountId']
+            user_id = item['accountId']
             price = item['salePrices'][0]['value']
             product_type = ProductType(id=id, name=name, user_id=user_id, price=price, seasonality=0)
             db.session.add(product_type)
         db.session.commit()
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             id = item['id']
             address = item['address']
             user_uuid = item['accountId']
-            point = Point(id=id, address=address,user_id=user_uuid, fullness=0)
+            point = Point(id=id, address=address, user_id=user_uuid, fullness=0)
             db.session.add(point)
         db.session.commit()
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/report/stock/bystore', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/report/stock/bystore',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             for store_item in item['stockByStore']:
                 if store_item['stock'] > 0:
@@ -705,7 +742,9 @@ class IntegrateApi(Resource):
                     pass
         db.session.commit()
         shops_list = set()
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get(
+            'https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store',
+            auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             id = item['id']
             date = datetime.datetime.fromisoformat(item['updated'])
@@ -716,12 +755,13 @@ class IntegrateApi(Resource):
                 count = position['quantity']
                 product_type_id = position['assortment']['id']
                 price = position['price']
-                sale = Sale(id=id,date=date,point_id=point_id, count=count,
-                            product_type_id=product_type_id,price=price,user_id=user_uuid)
+                sale = Sale(id=id, date=date, point_id=point_id, count=count,
+                            product_type_id=product_type_id, price=price, user_id=user_uuid)
                 db.session.add(sale)
         db.session.commit()
         # если мыразличаем склады и магазины то код дальше не нужен
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move?expand=positions',  auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move?expand=positions',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             point_id = item['sourceStore']['meta']['href'].split('/')[-1]
             if not point_id in shops_list:
@@ -788,7 +828,7 @@ class AuthenticationApi(Resource):
         email = request_json["email"]
         password = request_json["password"]
         password_repeat = request_json["password_repeat"]
-        print(password)
+
         if len(name) < 5 or len(name) > 12:
             errors.append('Name must be greater than 5 chars and less than 12 chars')
 
@@ -820,6 +860,7 @@ class AuthenticationApi(Resource):
 
 class IntegrateUserApi(Resource):
     """ Class that integrates user with moysklad.ru """
+
     @staticmethod
     def post():
         """ Method that integrates user with moysklad.ru
@@ -837,7 +878,8 @@ class IntegrateUserApi(Resource):
         user = User.query.get_or_404(request_json['user_id'])
         user.moysklad_login = request_json['moysklad_login']
         user.moysklad_password = request_json['moysklad_password']
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move?expand=positions', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move?expand=positions',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         user.moysklad_id = response.json()['rows'][0]['accountId']
         db.session.add(user)
         db.session.commit()
