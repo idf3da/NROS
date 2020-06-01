@@ -17,6 +17,7 @@ from myapp.models import ProductType,Point, LSTM, Sale, User
 
 import keras.backend.tensorflow_backend as tb #! костыль
 
+
 def json_type(product_type):
     """Function converts product_type object into dictionary
     :param product_type: (ProductType) Product Type object
@@ -115,8 +116,8 @@ def create_lstm(query):
         :return LSTM: LSTM object
     """
     before_range = None
-    if 'before_range' in query:
-        before_range = query['before_range']
+    slen = None
+    model_id = None
     data = db.engine.execute('''
     with dates as (
         select generate_series(
@@ -142,8 +143,13 @@ def create_lstm(query):
     else:
         slen = model.product_type.seasonality
         before_range = model.before_range
-    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModelsAndPredict(data,before_range + 1,model,slen)
-    stepG = 2
+        model_id = model.id
+    if 'before_range' in query:
+        if before_range != query['before_range']:
+            model = None
+            before_range = query['before_range']
+    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModelsAndPredict(data,before_range + 1,model,slen) #+1
+    stepG = 15
 
     if a == -1:
         steps = db.engine.execute('''
@@ -188,14 +194,13 @@ def create_lstm(query):
         resR = utils.predictWinters([row[1] for row in steps],a,b,g,slen,stepG)
         spros,listForvector,realSpros = prediction,resR[0],resR[1]
 
-    print(spros,listForvector,realSpros)
+    # print(spros,listForvector,realSpros,before_range,lstm_prediciton,a,b,g)
+    return LSTM(id = model_id,point_id=query['point_id'], product_type_id=query[
+            'product_type_id'], alpha=a, beta=b,
+                    gamma=g,model = pickle.dumps(model),scope = pickle.dumps(scaler),prediction = prediction,
+                    lstm_pred = lstm_prediciton,before_range = before_range,
+                    listForvector = listForvector,realSpros = realSpros)
 
-
-    return LSTM(point_id=query['point_id'], product_type_id=query[
-        'product_type_id'], alpha=a, beta=b,
-                gamma=g,model = pickle.dumps(model),scope = pickle.dumps(scaler),prediction = prediction,
-                lstm_pred = lstm_prediciton,before_range = before_range,
-                listForvector = listForvector,realSpros = realSpros) #before_range = before_range
 
 
 def create_lstm_with_id(query, lstm_id):
@@ -210,9 +215,7 @@ def create_lstm_with_id(query, lstm_id):
         :return LSTM: LSTM object
     """
     before_range = None
-    if 'before_range' in query:
-        before_range = query['before_range'] + 1
-
+    slen = None
     data = db.engine.execute('''
     with dates as (
         select generate_series(
@@ -230,18 +233,21 @@ def create_lstm_with_id(query, lstm_id):
             and sale.point_id = {0}
             and sale.product_type_id = {1}
         group by 1 order by 1 desc
-    '''.format(query['point_id'], query['product_type_id'])).fetchall()
-    # print(data,'data')
-    # data = Sale.query.filter(Sale.shop_id == query['shop_id']).all()
+    '''.format(query['point_id'], query['product_type_id'])).fetchall() #and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
     tb._SYMBOLIC_SCOPE.value = True #! костыль
-    models = LSTM.query.filter(LSTM.point_id == query['point_id'],LSTM.product_type_id==query['product_type_id']).all() #+user_id
-    if models == []:
+    model = LSTM.query.filter(LSTM.id == lstm_id).first() #+user_id
+    if model == None:
         slen = int(ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality)
     else:
-        slen = models[0].product_type.seasonality
-    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModels(data,before_range,models,slen)
-
-    stepG = 2
+        slen = model.product_type.seasonality
+        before_range = model.before_range
+        model_id = model.id
+    if 'before_range' in query:
+        if before_range != query['before_range']:
+            model = None
+            before_range = query['before_range']
+    a,b,g,model,scaler,prediction,before_range,lstm_prediciton = utils.trainModelsAndPredict(data,before_range + 1,model,slen)
+    stepG = 15
 
     if a == -1:
         steps = db.engine.execute('''
@@ -261,8 +267,8 @@ def create_lstm_with_id(query, lstm_id):
                 and sale.point_id = {0}
                 and sale.product_type_id = {1}
             group by 1 order by 1 desc limit {2}
-        '''.format(query['point_id'], query['product_type_id'], stepG + before_range-1 if stepG >= before_range - 2 else before_range + 3)).fetchall()
-        contRes = utils.predict_sales([],step = steps,before_range = before_range,scaler = scaler,model = model)
+        '''.format(query['point_id'], query['product_type_id'], stepG+3 if stepG >= before_range else before_range+3)).fetchall()
+        contRes = utils.predict_step(steps,before_range = before_range+1,scaler = scaler,model = model)
         spros,listForvector,realSpros = lstm_prediciton,contRes[0],contRes[1]
     else:
         steps = db.engine.execute('''
@@ -283,21 +289,15 @@ def create_lstm_with_id(query, lstm_id):
                 and sale.product_type_id = {1}
             group by 1 order by 1 desc limit {2}
         '''.format(query['point_id'], query['product_type_id'], 367)).fetchall()
-        resR = utils.predict_rare([],a,b,g,slen,[row[1] for row in steps],stepG)
+        resR = utils.predictWinters([row[1] for row in steps],a,b,g,slen,stepG)
         spros,listForvector,realSpros = prediction,resR[0],resR[1]
 
-    print(spros,listForvector,realSpros)
-
-
-
-
-
-
+    # print(spros,listForvector,realSpros)
     return LSTM(id = lstm_id,point_id=query['point_id'], product_type_id=query[
-        'product_type_id'], alpha=a, beta=b,
-                gamma=g,model = model,scope = scaler,prediction = prediction,
-                lstm_pred = lstm_prediciton,before_range = before_range,
-                listForvector = listForvector,realSpros = realSpros)
+            'product_type_id'], alpha=a, beta=b,
+                    gamma=g,model = pickle.dumps(model),scope = pickle.dumps(scaler),prediction = prediction,
+                    lstm_pred = lstm_prediciton,before_range = before_range,
+                    listForvector = listForvector,realSpros = realSpros)
 
 
 def json_sale(sale):
@@ -337,48 +337,23 @@ def create_sale_with_id(query, sale_id):
 
 
 
-
+def json_prediction(prediction):
+    return {
+        'f1':prediction[0][0],
+        'f2':prediction[0][1],
+        'war_c':prediction[1][0],
+        'shop_c':prediction[1][1],
+        'war_id':prediction[2][0],
+        'shop_id':prediction[2][1],
+    }
 def make_prediction(query):
     tb._SYMBOLIC_SCOPE.value = True #! костыль
     models = LSTM.query.filter(LSTM.product_type_id==query['product_type_id']).all() #пока всё
-    slen = ProductType.query.filter(ProductType.id == query['product_type_id']).first().seasonality
     full = []
     for i in models:
-        full.append({'spros':i.lstm_pred if i.alpha == -1 else i.prediction, 'shop' : Point.query.filter(Point.id == i.point_id,Point.shop == True).first(), 'war' : Point.query.filter(i.point_id.in_(Point.shop_id),Point.shop == False).first(),
+        full.append({'spros':i.lstm_pred if i.alpha == -1 else i.prediction, 'shop' : Point.query.filter(Point.id == i.point_id).first(),
        'listForvector':i.listForvector,'realSpros':i.realSpros,'price':i.product_type.price})
     return utils.main_prediction(full)
-
-class ListProductTypesApi(Resource):
-    """ Class that gets all Product Types or creates new """
-
-    @staticmethod
-    def get():
-        """ Method used to get list of all Product Types
-            :return: list[ProductType]
-        """
-        product_types = ProductType.query.all()
-        return {'product_types': [json_type(product_type) for product_type
-                                  in
-                                  product_types]}, 200
-
-    @staticmethod
-    def post():
-        """ Create new Product Type
-            Example product type post query:
-            {
-                "count": 0,
-                "name": "Salt",
-                "price": 10,
-                "seasonality": 0
-            }
-            :return: jsonifyed ProductType
-        """
-        if not request.json:
-            abort(400, "No data")
-        product_type = create_type(request.json)
-        db.session.add(product_type)
-        db.session.commit()
-        return {'product_type': json_type(product_type)}, 201
 
 
 def create_user(name, email, password_hash, privilege_level, token):
@@ -423,6 +398,8 @@ class ListProductTypesApi(Resource):
         db.session.add(product_type)
         db.session.commit()
         return {'product_type': json_type(product_type)}, 201
+
+
 class ProductTypesApi(Resource):
     """ Class that gets/updates/deletes Product Type by id """
 
@@ -460,7 +437,6 @@ class ProductTypesApi(Resource):
         db.session.add(product_type)
         db.session.commit()
         return {'product_type': json_type(product_type)}, 201
-
 
 class ListPointsApi(Resource):
     """ Class that gets all Shops or creates new """
@@ -558,6 +534,9 @@ class ListLSTMsApi(Resource):
         if not request.json:
             abort(400, "No data")
         lstm = create_lstm(request.json)
+        if lstm.id != None:
+            db.session.delete(LSTM.query.get_or_404(lstm.id))
+            db.session.commit()
         db.session.add(lstm)
         db.session.commit()
         return {'lstm': json_lstm(lstm)}, 200
@@ -671,7 +650,6 @@ class SaleApi(Resource):
         db.session.commit()
         return {'sale': json_sale(sale)}, 201
 
-
 class PredictApi(Resource):
     """ Class that make predictions """
 
@@ -680,27 +658,10 @@ class PredictApi(Resource):
         """ Method used to get list of all Sales
             :return: list[Sale]
         """
-        sales = Sale.query.all()
-        return {'sales': [json_sale(sales) for sales in sales]}, 200
+        predictions = make_prediction(request.json)
+        print(predictions)
+        return {'predictions': [json_prediction(prediction) for prediction in predictions]}, 200
 
-    @staticmethod
-    def post():
-        """ Create new Sale
-            Example sale post query:
-            {
-                "date": '2011-11-04 00:05:23',
-                "product_item_id": 10,
-                "shop_id": 20
-            }
-            :return: jsonifyed Sale
-        """
-        if not request.json:
-            abort(400, "No data")
-        sale = make_prediction(request.json)
-        db.session.add(sale)
-        db.session.commit()
-        print(sale)
-        return {'sale': json_sale(sale)}, 200
 
 
 class ImportApi(Resource):
