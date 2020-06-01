@@ -704,9 +704,20 @@ class PredictApi(Resource):
 
 
 class ImportApi(Resource):
+    """ Class that imports data from moysklad.ru """
     @staticmethod
     def get(user_id):
-        user = User(user_id)
+        """ Method that imports all data from moysklad.ru """
+        user = User.query.get_or_404(id=user_id)
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/product', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            id = item['item']
+            name = item['name']
+            user_id= item['accountId']
+            price = item['salePrices'][0]['value']
+            product_type = ProductType(id=id, name=name, user_id=user_id, price=price, seasonality=0)
+            db.session.add(product_type)
+        db.session.commit()
         response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             id = item['id']
@@ -723,11 +734,13 @@ class ImportApi(Resource):
                     point.fullness += store_item['stock']
                     db.session.add(point)
         db.session.commit()
+        shops_list = set()
         response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             id = item['id']
             date = datetime.datetime.fromisoformat(item['updated'])
             point_id = item['store']['id']
+            shops_list.add(point_id)
             count = item['positions'][0]['quantity']
             product_type_id = item['positions'][0]['assortment']['id']
             price = item['positions'][0]['price']
@@ -741,6 +754,8 @@ class ImportApi(Resource):
         # response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move',  auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         # for item in response.json()['rows']:
         #     id = item['sourceStore']['meta']['href'].split('/')[-1]
+        #     if not id in shops_list:
+
 
 
 
@@ -776,8 +791,8 @@ class AuthenticationApi(Resource):
             Example of query:
             {
                 "name": 'Tester',
-                "password": 'qwerty123'
-                "email": 'tester@ya.ru',
+                "password": 'qwerty123',
+                "email": 'tester@ya.ru'
             }
             :return: list[]
         """
@@ -793,7 +808,7 @@ class AuthenticationApi(Resource):
         email = request_json["email"]
         password = request_json["password"]
         password_repeat = request_json["password_repeat"]
-
+        print(password)
         if len(name) < 5 or len(name) > 12:
             errors.append('Name must be greater than 5 chars and less than 12 chars')
 
@@ -823,6 +838,31 @@ class AuthenticationApi(Resource):
         return {'is_success': True, 'name': name, 'token': token}
 
 
+class IntegrateUser(Resource):
+    """ Class that integrates user with moysklad.ru """
+    @staticmethod
+    def post():
+        """ Method that integrates user with moysklad.ru
+            Example of query:
+            {
+                "user_id": 1,
+                "moysklad_password": '1231231',
+                "moysklad_login": 'abc@def'
+            }
+            :return: list[]
+        """
+        if not request.json:
+            return abort(400, "No data")
+        request_json= request.json()
+        user = User.query.get_or_404(request_json['user_id'])
+        user.moysklad_login = request_json['moysklad_login']
+        user.moysklad_password = request_json['moysklad_password']
+        db.session.add(user)
+        db.session.commit()
+        return {'is_success': True}
+
+
+api.add_resource(IntegrateUser, '/api/user/integrate')
 api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
 api.add_resource(AuthenticationApi, '/api/authentication')
 api.add_resource(PointApi, '/api/points/<point_id>')
