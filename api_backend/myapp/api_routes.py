@@ -669,17 +669,17 @@ class ImportApi(Resource):
     @staticmethod
     def get(user_id):
         """ Method that imports all data from moysklad.ru """
-        user = User.query.get_or_404(id=user_id)
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/product', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        user = User.query.get_or_404(user_id)
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/product', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
-            id = item['item']
+            id = item['id']
             name = item['name']
             user_id= item['accountId']
             price = item['salePrices'][0]['value']
             product_type = ProductType(id=id, name=name, user_id=user_id, price=price, seasonality=0)
             db.session.add(product_type)
         db.session.commit()
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             id = item['id']
             address = item['address']
@@ -687,37 +687,48 @@ class ImportApi(Resource):
             point = Point(id=id, address=address,user_id=user_uuid, fullness=0)
             db.session.add(point)
         db.session.commit()
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/report/stock/bystore', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/report/stock/bystore', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             for store_item in item['stockByStore']:
                 if store_item['stock'] > 0:
                     point = Point.query.get(store_item['meta']['href'].split('/')[-1])
                     point.fullness += store_item['stock']
                     db.session.add(point)
+                    pass
         db.session.commit()
         shops_list = set()
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store', auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store', auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             id = item['id']
             date = datetime.datetime.fromisoformat(item['updated'])
             point_id = item['store']['id']
             shops_list.add(point_id)
-            count = item['positions'][0]['quantity']
-            product_type_id = item['positions'][0]['assortment']['id']
-            price = item['positions'][0]['price']
             user_uuid = item['accountId']
-            sale = Sale(id=id,date=date,point_id=point_id, count=count,
-                        product_type_id=product_type_id,price=price,user_id=user_uuid)
-            db.session.add(sale)
+            for position in item['positions']['rows']:
+                count = position['quantity']
+                product_type_id = position['assortment']['id']
+                price = position['price']
+                sale = Sale(id=id,date=date,point_id=point_id, count=count,
+                            product_type_id=product_type_id,price=price,user_id=user_uuid)
+                db.session.add(sale)
         db.session.commit()
         # если мыразличаем склады и магазины то код дальше не нужен
-        # stores = Point.query.all()
-        # response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move',  auth=requests.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
-        # for item in response.json()['rows']:
-        #     id = item['sourceStore']['meta']['href'].split('/')[-1]
-        #     if not id in shops_list:
-
-
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move?expand=positions',  auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            point_id = item['sourceStore']['meta']['href'].split('/')[-1]
+            if not point_id in shops_list:
+                id = item['id']
+                date = datetime.datetime.fromisoformat(item['updated'])
+                user_id = item['accountId']
+                for position in item['positions']['rows']:
+                    count = position['quantity']
+                    product_type_id = position['assortment']['id']
+                    price = position['price']
+                    sale = Sale(id=id, date=date, point_id=point_id, count=count,
+                                product_type_id=product_type_id, price=price, user_id=user_id)
+                    db.session.add(sale)
+        db.session.commit()
+        return "ok", 200
 
 
 class AuthenticationApi(Resource):
@@ -823,6 +834,7 @@ class IntegrateUser(Resource):
         return {'is_success': True}
 
 
+api.add_resource(ImportApi, '/api/import/<user_id>')
 api.add_resource(IntegrateUser, '/api/user/integrate')
 api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
 api.add_resource(AuthenticationApi, '/api/authentication')

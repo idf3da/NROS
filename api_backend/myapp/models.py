@@ -6,7 +6,7 @@ from myapp import db
 
 class ProductType(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains Product Type. """
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String(100))
     price = db.Column(db.Integer)
     seasonality = db.Column(db.Integer)
@@ -16,7 +16,7 @@ class ProductType(db.Model):  # pylint: disable=too-few-public-methods
 
 class Point(db.Model):
     """ Class that contains RetailStore or Storage """
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String, primary_key=True)
     address = db.Column(db.String(100))
     latitude = db.Column(db.Float())
     longitude = db.Column(db.Float())
@@ -49,7 +49,7 @@ class User(db.Model):
 
 class Sale(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains ProductItem Sale """
-    id = db.Column(db.String(36), primary_key=True)
+    id = db.Column(db.String, primary_key=True)
     date = db.Column(db.DateTime)
     point_id = db.Column(db.Integer, db.ForeignKey('point.id'))
     count = db.Column(db.Integer)
