@@ -1,9 +1,11 @@
+""" Flask testing module """
 import unittest
 
 from myapp import api_routes
 
 
 class TestCase(unittest.TestCase):
+    """ Class for testing flask app """
     def setUp(self):
         pass
 
@@ -11,12 +13,14 @@ class TestCase(unittest.TestCase):
         pass
 
     def test_get_product_type(self):
+        """ test case #1"""
         product_type = api_routes.ProductTypesApi.get(1)
         self.assertEqual(product_type[0], {
             "product_type": {"id": 1, "name": "Salt", "price": 10,
                              "seasonality": 0}})
 
     def test_get_product_types(self):
+        """ test case #2"""
         product_types = api_routes.ListProductTypesApi.get()
         self.assertEqual(product_types[0], {"product_types": [
             {"id": 1, "name": "Salt", "price": 10, "seasonality": 0},
@@ -29,8 +33,8 @@ class TestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    log = 'public/api_test.txt'
-    file = open(log, 'w')
+    LOG = 'public/api_test.txt'
+    file = open(LOG, 'w')
     runner = unittest.TextTestRunner(file)
     unittest.main(testRunner=runner)
     file.close()

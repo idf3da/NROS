@@ -18,5 +18,4 @@ from myapp.models import * # pylint: disable=wrong-import-position
 migrate = Migrate(app, db) # pylint: disable=invalid-name
 CORS(app)
 
-from myapp import routes # pylint: disable=wrong-import-position
 from myapp import api_routes # pylint: disable=wrong-import-position

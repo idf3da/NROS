@@ -4,3 +4,4 @@
 /venv/
 /api_backend/migrations/
 /migrations/
+api_backend/.vscode/launch.json

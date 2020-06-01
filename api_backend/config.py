@@ -1,9 +1,9 @@
+""" Flask config module """
 import os
 
-basedir = os.path.abspath(os.path.dirname(__file__))
 
-
-class Config(object):
+class Config():  # pylint: disable=too-few-public-methods
+    """ Class for flask app configuration """
     FLASK_APP = 'app.py'
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     SQLALCHEMY_DATABASE_URI = \
