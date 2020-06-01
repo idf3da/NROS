@@ -37,7 +37,7 @@
             }
         },
         mounted() {
-            axios.get('http://127.0.0.1:5000/api/product_groups').then(response => {
+            axios.get('product_groups').then(response => {
                 this.groups = response.data.product_groups;
                 for (let i =0; i < this.groups.length; i++) {
                     for (let j =0 ; j < this.groups[i].product_items.length; j++) {

@@ -39,7 +39,7 @@
             }
         },
         mounted() {
-            axios.get('http://127.0.0.1:5000/api/product_types').then(response => {
+            axios.get('api/product_types').then(response => {
                 this.types = response.data.product_types;
               });
         }

@@ -21,6 +21,8 @@
 
 <script>
     import axios from 'axios'
+    import API_URL from '../constants'
+
     export default {
         data: function() {
             return {
@@ -38,7 +40,7 @@
             }
         },
         mounted() {
-            axios.get('http://127.0.0.1:5000/api/product_items').then(response => {
+            axios.get(API_URL + '/api/product_items').then(response => {
                 this.items = response.data.product_items;
               });
         }
