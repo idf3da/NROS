@@ -23,7 +23,7 @@
                     <v-list-item two-line>
                         <v-list-item-content>
                             <v-list-item-title class="headline">Expandable</v-list-item-title>
-                            <v-list-item-subtitle>Expand your services quick, in one click</v-list-item-subtitle>
+                            <v-list-item-subtitle>Expand your services quickly, in one click</v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
 
