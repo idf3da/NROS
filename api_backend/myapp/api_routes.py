@@ -57,35 +57,25 @@ def json_point(point):
         :param point: (Point) Point object
         :return dict: dictionary containing converted Point
         """
-    return {'id': point.id, 'address': point.address, 'fullness': point.fullness,
-            'latitude': point.latitude, 'longitude': point.longitude, 'capacity': point.capacity,
-            'minimum': point.minimum, 'shop': point.shop, 'shop_id': point.shop_id}
+    return {'id': point.id, 'address': point.address}
 
 
 
 def create_point(query, user_token):
     """ Function creates Point from query.
-        :param query: (dict) Example: { location_id: 1,
-                                        fullness: 10,
-                                        capacity: 20 }
+        :param query: (dict) Example: { address: "Moscow" }
         :return Point: Point object
     """
-    return Point(address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
-                 latitude=query['latitude'], longitude=query['longitude'], minimum=query['minimum'], shop=query['shop'],
-                 shop_id=query['shop_id'], user_token=user_token)
+    return Point(address=query['address'], user_token=user_token)
 
 
 def create_point_with_id(query, point_id, user_token):
     """ Function creates Shop with id from query.
-        :param query: (dict) Example: { location_id: 1,
-                                        fullness: 10,
-                                        capacity: 20 }
+        :param query: (dict) Example: { address: "Moscow" }
         :param shop_id: (int)
         :return Shop: Shop object
     """
-    return Point(id=point_id, address=query['address'], fullness=query['fullness'], capacity=query['capacity'],
-                 latitude=query['latitude'], longitude=query['longitude'], minimum=query['minimum'],
-                 shop=query['shop'], user_token=user_token)
+    return Point(id=point_id, address=query['address'], user_token=user_token)
 
 
 def json_lstm(lstm):
@@ -384,30 +374,32 @@ def json_tag(tag):
         :param tag: (Tag) Tag object
         :return dict: dictionary containing converted Tag
     """
-    return {'id': tag.id, 'minimum': tag.minimum, 'capacity': tag.capacity}
+    return {'id': tag.id, 'minimum': tag.minimum, 'capacity': tag.capacity, 'fullness': tag.fullness }
 
 
 def create_tag(query, user_token):
     """ Function creates Tag from query.
         :param query: (dict) Example: {
                                           "minimum": 10,
-                                          "capasity": 50
+                                          "capacity": 200
+                                          "fulness": 10
                                       }
         :return Tag: Tag object
     """
-    return Tag(minimum=query['minimum'], capacity=query['capacity'], user_token=user_token)
+    return Tag(minimum=query['minimum'], capacity=query['capacity'], fulness=query['fullness'], user_token=user_token)
 
 
 def create_tag_with_id(query, tag_id, user_token):
     """ Function creates Tag with id from query.
         :param query: (dict) Example: {
                                           "minimum": 10,
-                                          "capasity": 50
+                                          "capacity": 50,
+                                          "fulness": 10
                                       }
         :param tag_id: (int)
         :return Tag: Tag object
     """
-    return Tag(id=tag_id, minimum=query['minimum'], capacity=query['capacity'], user_token=user_token)
+    return Tag(id=tag_id, minimum=query['minimum'], capacity=query['capacity'], fulness=query['fullness'], user_token=user_token)
 
 
 def require_authentication(func):
@@ -530,9 +522,7 @@ class ListPointsApi(Resource):
         """ Create new Shop
             Example shop post query:
             {
-                "shop_id": 1,
-                "fullness": 10,
-                "capacity": 20
+                "address": "Moscow"
             }
             :return: jsonifyed Shop
         """
@@ -766,7 +756,8 @@ class ListTagsApi(Resource):
         """ Create new Tag
             Example tag post query:
             {
-                TODO
+                "minimum": 10,
+                "capacity": 200
             }
             :return: jsonifyed Tag
         """
@@ -937,27 +928,27 @@ class IntegrateApi(Resource):
         for item in response.json()['rows']:
             product_type_id = item['id']
             name = item['name']
-            user_id = item['accountId']
             price = item['salePrices'][0]['value']
-            product_type = ProductType(id=product_type_id, name=name, user_id=user_id, price=price, seasonality=0, tag_id=1)
+            product_type = ProductType(id=product_type_id, name=name, user_token=user.token, price=price, seasonality=0, tag_id=1)
             db.session.add(product_type)
+        products_count = len(response.json()['rows'])
         response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store',
                                 auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for item in response.json()['rows']:
             point_id = item['id']
             address = item['address']
-            user_uuid = item['accountId']
-            point = Point(id=id, address=address, user_id=user_uuid, fullness=0)
+            point = Point(id=id, address=address, user_token=user.token)
             db.session.add(point)
         db.session.commit()
         response = requests.get('https://online.moysklad.ru/api/remap/1.1/report/stock/bystore',
                                 auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
         for index, item in enumerate(response.json()['rows']):
             for store_item in item['stockByStore']:
-                if store_item['stock'] > 0:
-                    point = Point.query.get(store_item['meta']['href'].split('/')[-1])
-                    point.fullness[index] = store_item['stock']
-                    db.session.add(point)
+                point_id = store_item['meta']['href'].split('/')[-1]
+                product_type_id = item['meta']['href'].split('/')[-1].split('?')[0]
+                tag = Tag(point_id=point_id, product_type_id=product_type_id, minimum=0, capacity=1000, fullness=store_item['stock'])
+                db.session.add(tag)
+                db.session.commit()
         db.session.commit()
         shops_list = set()
         response = requests.get(
@@ -968,13 +959,12 @@ class IntegrateApi(Resource):
             date = datetime.datetime.fromisoformat(item['updated'])
             point_id = item['store']['id']
             shops_list.add(point_id)
-            user_uuid = item['accountId']
             for position in item['positions']['rows']:
                 count = position['quantity']
                 product_type_id = position['assortment']['id']
                 price = position['price']
                 sale = Sale(id=sale_id, date=date, point_id=point_id, count=count,
-                            product_type_id=product_type_id, price=price, user_id=user_uuid)
+                            product_type_id=product_type_id, price=price, user_token=user.token)
                 db.session.add(sale)
         db.session.commit()
         # если мыразличаем склады и магазины то код дальше не нужен
@@ -985,13 +975,12 @@ class IntegrateApi(Resource):
             if not point_id in shops_list:
                 sale_id = item['id']
                 date = datetime.datetime.fromisoformat(item['updated'])
-                user_id = item['accountId']
                 for position in item['positions']['rows']:
                     count = position['quantity']
                     product_type_id = position['assortment']['id']
                     price = position['price']
                     sale = Sale(id=sale_id, date=date, point_id=point_id, count=count,
-                                product_type_id=product_type_id, price=price, user_id=user_id)
+                                product_type_id=product_type_id, price=price, user_token=user.token)
                     db.session.add(sale)
         db.session.commit()
         return "ok", 200

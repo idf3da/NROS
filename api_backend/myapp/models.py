@@ -9,8 +9,10 @@ class Tag(db.Model):  # pylint: disable=too-few-public-methods
     id = db.Column(db.Integer, primary_key=True)
     minimum = db.Column(db.Integer)
     capacity = db.Column(db.Integer)
-    product_types = db.relationship("ProductType", backref='tag', lazy='dynamic')
     user_token = db.Column(db.String, db.ForeignKey('user.token'))
+    fullness = db.Column(db.Integer)
+    point_id = db.Column(db.String, db.ForeignKey('point.id'))
+    product_type_id = db.Column(db.String, db.ForeignKey('product_type.id'))
 
 
 class ProductType(db.Model):  # pylint: disable=too-few-public-methods
@@ -21,20 +23,14 @@ class ProductType(db.Model):  # pylint: disable=too-few-public-methods
     seasonality = db.Column(db.Integer)
     lstms = db.relationship('LSTM', backref='product_type', lazy='dynamic')
     user_token = db.Column(db.String, db.ForeignKey('user.token'))
-    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'))
+    tags = db.relationship('Tag', backref='point', lazy='dynamic')
 
 
 class Point(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains RetailStore or Storage """
     id = db.Column(db.String, primary_key=True)
     address = db.Column(db.String(100))
-    latitude = db.Column(db.Float())
-    longitude = db.Column(db.Float())
-    # fullness[i] - это сколько товара с id=product_types_id[i] в данной точке
-    product_types_id = db.Column(db.ARRAY(db.Integer))
-    fullness = db.Column(db.ARRAY(db.Integer))
-    shop = db.Column(db.Boolean)
-    shop_id = db.Column(db.ARRAY(db.Integer))
+    tags = db.relationship('Tag', backref='point', lazy='dynamic')
     lstms = db.relationship('LSTM', backref='point', lazy='dynamic')
     sales = db.relationship('Sale', backref='shop', lazy='dynamic')
     user_token = db.Column(db.String, db.ForeignKey('user.token'))
