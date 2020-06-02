@@ -24,7 +24,7 @@ class ProductType(db.Model):  # pylint: disable=too-few-public-methods
     seasonality = db.Column(db.Integer)
     lstms = db.relationship('LSTM', backref='product_type', lazy='dynamic')
     user_token = db.Column(db.String, db.ForeignKey('user.token'))
-    tags = db.relationship('Tag', backref='point', lazy='dynamic')
+    tags = db.relationship('Tag', backref='product_type', lazy='dynamic')
 
 
 class Point(db.Model):  # pylint: disable=too-few-public-methods
