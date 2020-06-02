@@ -827,7 +827,7 @@ def f1_1(sendCount,point):
     res = 0          
     spros = point['spros']
     if CheckSendCount(sendCount,point['shop'].minimum,point['shop'].capacity,spros,point['shop'].fullness): 
-        res=point['shop'].point_price*min(spros,(point['shop'].fullness+sendCount)) 
+        res=point['shop'].sell_price*min(spros,(point['shop'].fullness+sendCount)) 
     return res
 
 def f2_1(sendCount,point):
