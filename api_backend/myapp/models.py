@@ -4,6 +4,15 @@ Module contains SQLAlchemy-based ORM
 from myapp import db
 
 
+class Tag(db.Model):  # pylint: disable=too-few-public-methods
+    """ Class that contains Tag"""
+    id = db.Column(db.Integer, primary_key=True)
+    minimum = db.Column(db.Integer)
+    capacity = db.Column(db.Integer)
+    product_types = db.relationship("ProductType", backref='tag', lazy='dynamic')
+    user_token = db.Column(db.String, db.ForeignKey('user.token'))
+
+
 class ProductType(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains Product Type. """
     id = db.Column(db.String, primary_key=True)
@@ -12,6 +21,7 @@ class ProductType(db.Model):  # pylint: disable=too-few-public-methods
     seasonality = db.Column(db.Integer)
     lstms = db.relationship('LSTM', backref='product_type', lazy='dynamic')
     user_token = db.Column(db.String, db.ForeignKey('user.token'))
+    tag = db.Column(db.Integer, db.ForeignKey('tag.id'))
 
 
 class Point(db.Model):  # pylint: disable=too-few-public-methods
@@ -20,9 +30,9 @@ class Point(db.Model):  # pylint: disable=too-few-public-methods
     address = db.Column(db.String(100))
     latitude = db.Column(db.Float())
     longitude = db.Column(db.Float())
-    fullness = db.Column(db.Integer)
-    capacity = db.Column(db.Integer)
-    minimum = db.Column(db.Integer)
+    # fullness[i] - это сколько товара с id=product_types_id[i] в данной точке
+    product_types_id = db.Column(db.ARRAY(db.Integer))
+    fullness = db.Column(db.ARRAY(db.Integer))
     shop = db.Column(db.Boolean)
     shop_id = db.Column(db.ARRAY(db.Integer))
     lstms = db.relationship('LSTM', backref='point', lazy='dynamic')

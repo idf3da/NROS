@@ -1,4 +1,4 @@
-"""Module that routes api requests"""
+""" Module that routes api requests """  # pylint: disable=too-many-lines
 import datetime
 import hashlib
 import pickle
@@ -12,7 +12,7 @@ from flask_restful import Resource
 from myapp import api
 from myapp.__init__ import db
 from myapp.consts import Consts
-from myapp.models import ProductType, Point, LSTM, Sale, User
+from myapp.models import ProductType, Point, LSTM, Sale, User, Tag
 from myapp.utils import Utils
 import utils
 
@@ -379,6 +379,37 @@ def create_user(name, email, password_hash, token, privilege_level=1):
     return User(name=name, email=email, password_hash=password_hash, privilege_level=privilege_level, token=token)
 
 
+def json_tag(tag):
+    """ Function converts Tag object into dictionary
+        :param tag: (Tag) Tag object
+        :return dict: dictionary containing converted Tag
+    """
+    return {'id': tag.id, 'minimum': tag.minimum, 'capacity': tag.capacity}
+
+
+def create_tag(query, user_token):
+    """ Function creates Tag from query.
+        :param query: (dict) Example: {
+                                          "minimum": 10,
+                                          "capasity": 50
+                                      }
+        :return Tag: Tag object
+    """
+    return Tag(minimum=query['minimum'], capacity=query['capacity'], user_token=user_token)
+
+
+def create_tag_with_id(query, tag_id, user_token):
+    """ Function creates Tag with id from query.
+        :param query: (dict) Example: {
+                                          "minimum": 10,
+                                          "capasity": 50
+                                      }
+        :param tag_id: (int)
+        :return Tag: Tag object
+    """
+    return Tag(id=tag_id, minimum=query['minimum'], capacity=query['capacity'], user_token=user_token)
+
+
 def require_authentication(func):
     """ Annotation requires token
 
@@ -445,8 +476,7 @@ class ProductTypesApi(Resource):
     """ Class that gets/updates/deletes Product Type by id """
 
     @staticmethod
-    @require_authentication
-    def get(product_type_id, user):
+    def get(product_type_id):
         """ Get Product Type by id
             :param product_type_id: (int)
             :return ProductType: Product Type object
@@ -455,8 +485,7 @@ class ProductTypesApi(Resource):
         return {'product_type': json_type(product_type)}, 200
 
     @staticmethod
-    @require_authentication
-    def delete(product_type_id, user):
+    def delete(product_type_id):
         """ Deletes Product Type by id
             :param product_type_id: (int)
             :return: empty html
@@ -492,7 +521,7 @@ class ListPointsApi(Resource):
         """ Method used to get list of all Shops
             :return: list[Shop]
         """
-        points = Point.query.all()
+        points = Point.query.filter(Point.user_token == user.token).all()
         return {'points': [json_point(points) for points in points]}, 200
 
     @staticmethod
@@ -519,8 +548,7 @@ class PointApi(Resource):
     """ Class that gets/updates/deletes Point by id """
 
     @staticmethod
-    @require_authentication
-    def get(point_id, user):
+    def get(point_id):
         """ Get Shop by id
             :param shop_id: (int)
             :return Shop: Shop object
@@ -529,8 +557,7 @@ class PointApi(Resource):
         return {'shop': json_point(point)}, 200
 
     @staticmethod
-    @require_authentication
-    def delete(point_id, user):
+    def delete(point_id):
         """ Deletes Shop by id
             :param shop_id: (int)
             :return: empty html
@@ -566,7 +593,7 @@ class ListLSTMsApi(Resource):
         """ Method used to get list of all LSTMs
             :return: list[LSTM]
         """
-        lstms = LSTM.query.all()
+        lstms = LSTM.query.filter(LSTM.user_token == user.token).all()
         return {'LSTMs': [json_lstm(lstm) for lstm in lstms]}, 200
 
     @staticmethod
@@ -598,8 +625,7 @@ class LSTMApi(Resource):
     """ Class that gets/updates/deletes LSTM by id """
 
     @staticmethod
-    @require_authentication
-    def get(lstm_id, user):
+    def get(lstm_id):
         """ Get LSTM by id
             :param lstm_id: (int)
             :return LSTM: LSTM object
@@ -608,8 +634,7 @@ class LSTMApi(Resource):
         return {'lstm': json_lstm(lstm)}, 200
 
     @staticmethod
-    @require_authentication
-    def delete(lstm_id, user):
+    def delete(lstm_id):
         """ Deletes LSTM by id
             :param lstm_id: (int)
             :return: empty html
@@ -645,7 +670,7 @@ class ListSalesApi(Resource):
         """ Method used to get list of all Sales
             :return: list[Sale]
         """
-        sales = Sale.query.all()
+        sales = Sale.query.filter(Sale.user_token == user.token).all()
         return {'sales': [json_sale(sales) for sales in sales]}, 200
 
     @staticmethod
@@ -673,8 +698,7 @@ class SaleApi(Resource):
     """ Class that gets/updates/deletes Sale by id """
 
     @staticmethod
-    @require_authentication
-    def get(sale_id, user):
+    def get(sale_id):
         """ Get Sale by id
             :param sale_id: (int)
             :return Sale: Sale object
@@ -683,8 +707,7 @@ class SaleApi(Resource):
         return {'sale': json_sale(sale)}, 200
 
     @staticmethod
-    @require_authentication
-    def delete(sale_id, user):
+    def delete(sale_id):
         """ Deletes Sale by id
             :param sale_id: (int)
             :return: empty html
@@ -715,8 +738,7 @@ class PredictApi(Resource):
     """ Class that make predictions """
 
     @staticmethod
-    @require_authentication
-    def get(user):
+    def get():
         """ Method used to get list of all Sales
             :return: list[Sale]
         """
@@ -725,76 +747,76 @@ class PredictApi(Resource):
         return {'predictions': [json_prediction(prediction) for prediction in predictions]}, 200
 
 
-class IntegrateApi(Resource):
-    """ Class that imports data from moysklad.ru """
+class ListTagsApi(Resource):
+    """ Class that gets all Tags or creates new """
+
+    @staticmethod
+    @require_authentication
+    def get(user):
+        """ Method used to get list of all Tags
+            :return: list[Tag]
+        """
+
+        tags = Tag.query.filter(Tag.user_token == user.token).all()
+        return {'tags': [json_tag(tag) for tag in tags]}, 200
 
     @staticmethod
     @require_authentication
     def post(user):
-        """ Method that imports all data from moysklad.ru """
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/product',
-                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
-        for item in response.json()['rows']:
-            product_type_id = item['id']
-            name = item['name']
-            user_id = item['accountId']
-            price = item['salePrices'][0]['value']
-            product_type = ProductType(id=product_type_id, name=name, user_id=user_id, price=price, seasonality=0)
-            db.session.add(product_type)
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store',
-                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
-        for item in response.json()['rows']:
-            point_id = item['id']
-            address = item['address']
-            user_uuid = item['accountId']
-            point = Point(id=id, address=address, user_id=user_uuid, fullness=0)
-            db.session.add(point)
+        """ Create new Tag
+            Example tag post query:
+            {
+                TODO
+            }
+            :return: jsonifyed Tag
+        """
+        if not request.json:
+            abort(400, "No data")
+        tag = create_tag(request.json, user.token)
+        db.session.add(tag)
         db.session.commit()
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/report/stock/bystore',
-                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
-        for item in response.json()['rows']:
-            for store_item in item['stockByStore']:
-                if store_item['stock'] > 0:
-                    point = Point.query.get(store_item['meta']['href'].split('/')[-1])
-                    point.fullness += store_item['stock']
-                    db.session.add(point)
+        return {'tag': json_tag(tag)}, 201
+
+
+class TagsApi(Resource):
+    """ Class that gets/updates/deletes Tags by id """
+
+    @staticmethod
+    def get(tag_id):
+        """ Get Tags by id
+            :param tag_id: (int)
+            :return Tags: Tag object
+        """
+        tag = Tag.query.get_or_404(tag_id)
+        return {'tag': json_tag(tag)}, 200
+
+    @staticmethod
+    def delete(tag_id):
+        """ Deletes Tag by id
+            :param tag_id: (int)
+            :return: empty html
+        """
+        tag = Tag.query.get_or_404(tag_id)
+        db.session.delete(tag)
         db.session.commit()
-        shops_list = set()
-        response = requests.get(
-            'https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store',
-            auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
-        for item in response.json()['rows']:
-            sale_id = item['id']
-            date = datetime.datetime.fromisoformat(item['updated'])
-            point_id = item['store']['id']
-            shops_list.add(point_id)
-            user_uuid = item['accountId']
-            for position in item['positions']['rows']:
-                count = position['quantity']
-                product_type_id = position['assortment']['id']
-                price = position['price']
-                sale = Sale(id=sale_id, date=date, point_id=point_id, count=count,
-                            product_type_id=product_type_id, price=price, user_id=user_uuid)
-                db.session.add(sale)
+        return "", 200
+
+    @staticmethod
+    @require_authentication
+    def put(tag_id, user):
+        """ Update/Create Tag by id
+            :param tag_id: (int)
+            :return: Tag: Tag object
+        """
+        if not request.json:
+            abort(400, "No data")
+        db.session.delete(Tag.query.get_or_404(tag_id))
         db.session.commit()
-        # если мыразличаем склады и магазины то код дальше не нужен
-        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move?expand=positions',
-                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
-        for item in response.json()['rows']:
-            point_id = item['sourceStore']['meta']['href'].split('/')[-1]
-            if not point_id in shops_list:
-                sale_id = item['id']
-                date = datetime.datetime.fromisoformat(item['updated'])
-                user_id = item['accountId']
-                for position in item['positions']['rows']:
-                    count = position['quantity']
-                    product_type_id = position['assortment']['id']
-                    price = position['price']
-                    sale = Sale(id=sale_id, date=date, point_id=point_id, count=count,
-                                product_type_id=product_type_id, price=price, user_id=user_id)
-                    db.session.add(sale)
+        tag = create_tag_with_id(request.json, tag_id, user.token)
+        db.session.add(tag)
         db.session.commit()
-        return "ok", 200
+        return {'tag': json_tag(tag)}, 201
+
 
 
 class AuthenticationApi(Resource):
@@ -903,6 +925,78 @@ class IntegrateUserApi(Resource):
         return {'is_success': True}
 
 
+class IntegrateApi(Resource):
+    """ Class that imports data from moysklad.ru """
+
+    @staticmethod
+    @require_authentication
+    def post(user):
+        """ Method that imports all data from moysklad.ru """
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/product',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            product_type_id = item['id']
+            name = item['name']
+            user_id = item['accountId']
+            price = item['salePrices'][0]['value']
+            product_type = ProductType(id=product_type_id, name=name, user_id=user_id, price=price, seasonality=0, tag_id=1)
+            db.session.add(product_type)
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            point_id = item['id']
+            address = item['address']
+            user_uuid = item['accountId']
+            point = Point(id=id, address=address, user_id=user_uuid, fullness=0)
+            db.session.add(point)
+        db.session.commit()
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/report/stock/bystore',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for index, item in enumerate(response.json()['rows']):
+            for store_item in item['stockByStore']:
+                if store_item['stock'] > 0:
+                    point = Point.query.get(store_item['meta']['href'].split('/')[-1])
+                    point.fullness[index] = store_item['stock']
+                    db.session.add(point)
+        db.session.commit()
+        shops_list = set()
+        response = requests.get(
+            'https://online.moysklad.ru/api/remap/1.1/entity/retaildemand?expand=positions.demandposition,positions.assortment.product,store',
+            auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            sale_id = item['id']
+            date = datetime.datetime.fromisoformat(item['updated'])
+            point_id = item['store']['id']
+            shops_list.add(point_id)
+            user_uuid = item['accountId']
+            for position in item['positions']['rows']:
+                count = position['quantity']
+                product_type_id = position['assortment']['id']
+                price = position['price']
+                sale = Sale(id=sale_id, date=date, point_id=point_id, count=count,
+                            product_type_id=product_type_id, price=price, user_id=user_uuid)
+                db.session.add(sale)
+        db.session.commit()
+        # если мыразличаем склады и магазины то код дальше не нужен
+        response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/move?expand=positions',
+                                auth=requests.auth.HTTPBasicAuth(user.moysklad_login, user.moysklad_password))
+        for item in response.json()['rows']:
+            point_id = item['sourceStore']['meta']['href'].split('/')[-1]
+            if not point_id in shops_list:
+                sale_id = item['id']
+                date = datetime.datetime.fromisoformat(item['updated'])
+                user_id = item['accountId']
+                for position in item['positions']['rows']:
+                    count = position['quantity']
+                    product_type_id = position['assortment']['id']
+                    price = position['price']
+                    sale = Sale(id=sale_id, date=date, point_id=point_id, count=count,
+                                product_type_id=product_type_id, price=price, user_id=user_id)
+                    db.session.add(sale)
+        db.session.commit()
+        return "ok", 200
+
+
 api.add_resource(IntegrateApi, '/api/user/integrate')
 api.add_resource(IntegrateUserApi, '/api/authentication/integrate')
 api.add_resource(AuthenticationApi, '/api/authentication')
@@ -910,8 +1004,10 @@ api.add_resource(ProductTypesApi, '/api/product_types/<product_type_id>')
 api.add_resource(PointApi, '/api/points/<point_id>')
 api.add_resource(LSTMApi, '/api/lstms/<lstm_id>')
 api.add_resource(SaleApi, '/api/sales/<sale_id>')
+api.add_resource(TagsApi, '/api/tags/<tag_id>')
 api.add_resource(ListProductTypesApi, '/api/product_types')
 api.add_resource(ListPointsApi, '/api/points')
 api.add_resource(ListLSTMsApi, '/api/lstms')
 api.add_resource(ListSalesApi, '/api/sales')
 api.add_resource(PredictApi, '/api/predict')
+api.add_resource(ListTagsApi, '/api/tags')
