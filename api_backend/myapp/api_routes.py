@@ -374,32 +374,34 @@ def json_tag(tag):
         :param tag: (Tag) Tag object
         :return dict: dictionary containing converted Tag
     """
-    return {'id': tag.id, 'minimum': tag.minimum, 'capacity': tag.capacity, 'fullness': tag.fullness }
+    return {'id': tag.id, 'minimum': tag.minimum, 'capacity': tag.capacity, 'fullness': tag.fullness, 'sell_price': tag.sell_price }
 
 
 def create_tag(query, user_token):
     """ Function creates Tag from query.
         :param query: (dict) Example: {
                                           "minimum": 10,
-                                          "capacity": 200
-                                          "fulness": 10
+                                          "capacity": 200,
+                                          "fulness": 10,
+                                          "sell_price": 100
                                       }
         :return Tag: Tag object
     """
-    return Tag(minimum=query['minimum'], capacity=query['capacity'], fulness=query['fullness'], user_token=user_token)
+    return Tag(minimum=query['minimum'], capacity=query['capacity'], fulness=query['fullness'], sell_preice=query['sell_price'], user_token=user_token)
 
 
 def create_tag_with_id(query, tag_id, user_token):
     """ Function creates Tag with id from query.
         :param query: (dict) Example: {
                                           "minimum": 10,
-                                          "capacity": 50,
-                                          "fulness": 10
+                                          "capacity": 200,
+                                          "fulness": 10,
+                                          "sell_price": 100
                                       }
         :param tag_id: (int)
         :return Tag: Tag object
     """
-    return Tag(id=tag_id, minimum=query['minimum'], capacity=query['capacity'], fulness=query['fullness'], user_token=user_token)
+    return Tag(id=tag_id, minimum=query['minimum'], capacity=query['capacity'], fulness=query['fullness'], sell_preice=query['sell_price'], user_token=user_token)
 
 
 def require_authentication(func):
@@ -757,7 +759,9 @@ class ListTagsApi(Resource):
             Example tag post query:
             {
                 "minimum": 10,
-                "capacity": 200
+                "capacity": 200,
+                "fulness": 10,
+                "sell_price": 100
             }
             :return: jsonifyed Tag
         """
@@ -946,7 +950,8 @@ class IntegrateApi(Resource):
             for store_item in item['stockByStore']:
                 point_id = store_item['meta']['href'].split('/')[-1]
                 product_type_id = item['meta']['href'].split('/')[-1].split('?')[0]
-                tag = Tag(point_id=point_id, product_type_id=product_type_id, minimum=0, capacity=1000, fullness=store_item['stock'])
+                sell_price = ProductType.query.get(product_type_id).price
+                tag = Tag(point_id=point_id, sell_price=sell_price, product_type_id=product_type_id, minimum=0, capacity=1000, fullness=store_item['stock'])
                 db.session.add(tag)
                 db.session.commit()
         db.session.commit()

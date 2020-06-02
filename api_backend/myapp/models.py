@@ -10,6 +10,7 @@ class Tag(db.Model):  # pylint: disable=too-few-public-methods
     minimum = db.Column(db.Integer)
     capacity = db.Column(db.Integer)
     user_token = db.Column(db.String, db.ForeignKey('user.token'))
+    sell_price = db.Column(db.Integer)
     fullness = db.Column(db.Integer)
     point_id = db.Column(db.String, db.ForeignKey('point.id'))
     product_type_id = db.Column(db.String, db.ForeignKey('product_type.id'))
