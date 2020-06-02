@@ -933,7 +933,7 @@ class IntegrateApi(Resource):
             product_type_id = item['id']
             name = item['name']
             price = item['salePrices'][0]['value']
-            product_type = ProductType(id=product_type_id, name=name, user_token=user.token, price=price, seasonality=0, tag_id=1)
+            product_type = ProductType(id=product_type_id, name=name, user_token=user.token, price=price, seasonality=0)
             db.session.add(product_type)
         products_count = len(response.json()['rows'])
         response = requests.get('https://online.moysklad.ru/api/remap/1.1/entity/store',
