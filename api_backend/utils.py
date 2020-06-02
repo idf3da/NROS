@@ -24,11 +24,11 @@ def trainModelsAndPredict(inData,before_range,model,slen = 0):
     else:
         a,b,g = train(data,slen)
         prediction,_ = predictWinters(data.values,a,b,g,slen)
-    
+        prediction = prediction[0][0]
     model,scaler,before_range = trainLSTM(data,do_scale = True,epochs = 100,batch = 32,verbose = 0,before_range = before_range,modelI = model)
     
     lstm_pred = int(predict_next_day(inData[-(before_range+1):],before_range = before_range,scaler = scaler,model = model)[0][0])
-    return a,b,g,model,scaler,int(prediction[0][0]),before_range-1,lstm_pred
+    return a,b,g,model,scaler,int(prediction),before_range-1,lstm_pred
     
 class HoltWinters:
     def __init__(self, series, slen, alpha, beta, gamma, n_preds, scaling_factor=1.96):
@@ -210,6 +210,7 @@ def trainLSTM(data,modelI,do_scale = True,epochs = 100,batch = 32,verbose = 0,be
         model = compile_LSTM_model(X_train.shape)
     else:
         model = pickle.loads(modelI.model)
+
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch, verbose=verbose, shuffle=False)
     if do_scale:
         return model,scaler,before_range
@@ -278,7 +279,7 @@ class Problem:
             self.variables_range = variables_range
         self.extend_vars = extend_vars
 
-    def generate_individual(self,sklad,mag,ftrs):
+    def generate_individual(self,mag,sklad,ftrs):
         individual = Individual()
         individual.features = ftrs
         individual.features.append(sklad)
@@ -289,9 +290,9 @@ class Problem:
 
                 
         if self.expand:
-            individual.objectives = [f(*individual.features,self.extend_vars) for f in self.objectives]
+            individual.objectives = [f(*individual.features) for f in self.objectives]
         else:
-            individual.objectives = [f(individual.features,self.extend_vars) for f in self.objectives]
+            individual.objectives = [f(individual.features) for f in self.objectives]
 
 
 class NSGA2Utils:
@@ -311,23 +312,12 @@ class NSGA2Utils:
     def create_initial_population(self):
         population = Population()
         for _ in range(self.num_of_individuals):
-            for i in self.problem.extend_vars:
-                individual = self.problem.generate_individual(i['war'].id,i['shop'].id,[random.randint(*x) for x in self.problem.variables_range])
-                self.problem.calculate_objectives(individual)
-                population.append(individual)
+            for i in range(len(self.problem.extend_vars)):
+                for j in range(i+1,len(self.problem.extend_vars)):
+                    individual = self.problem.generate_individual(self.problem.extend_vars[i],self.problem.extend_vars[j],[random.randint(*x) for x in self.problem.variables_range])
+                    self.problem.calculate_objectives(individual)
+                    population.append(individual)
         return population
-
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
 
     def fast_nondominated_sort(self, population):
         population.fronts = [[]]
@@ -395,9 +385,20 @@ class NSGA2Utils:
         return children
 
     def __crossover(self, individual1, individual2):
-        for i in self.problem.extend_vars:
-            child1 = self.problem.generate_individual(i['war'].id,i['shop'].id,[random.randint(*x) for x in self.problem.variables_range])
-            child2 = self.problem.generate_individual(i['war'].id,i['shop'].id,[random.randint(*x) for x in self.problem.variables_range])
+        
+            
+        
+        rnd1 = random.choice(self.problem.extend_vars)
+        rnd2 = random.choice(self.problem.extend_vars)
+        while rnd1==rnd2:
+            rnd2 = random.choice(self.problem.extend_vars)
+        child1 = self.problem.generate_individual(rnd1,rnd2,[random.randint(*x) for x in self.problem.variables_range])
+
+        rnd1 = random.choice(self.problem.extend_vars)
+        rnd2 = random.choice(self.problem.extend_vars)
+        while rnd1==rnd2:
+            rnd2 = random.choice(self.problem.extend_vars)
+        child2 = self.problem.generate_individual(rnd1,rnd2,[random.randint(*x) for x in self.problem.variables_range])
 
         num_of_features = 2 
         genes_indexes = range(num_of_features)
@@ -460,8 +461,8 @@ class Evolution:
 
     def evolve(self):
         self.population = self.utils.create_initial_population()
-        
-        
+        print('initial',time.ctime(time.time()))
+        loc = time.time()
         
         self.utils.fast_nondominated_sort(self.population)
         for front in self.population.fronts:
@@ -469,11 +470,13 @@ class Evolution:
         children = self.utils.create_children(self.population)
         returned_population = None
         for i in range(self.num_of_generations):
-            print(i)
+            print(time.time() - loc,i)
+            loc = time.time()
             self.population.extend(children)
             self.utils.fast_nondominated_sort(self.population)
             new_population = Population()
             front_num = 0
+            
             while len(new_population) + len(self.population.fronts[front_num]) <= self.num_of_individuals:
                 self.utils.calculate_crowding_distance(self.population.fronts[front_num])
                 new_population.extend(self.population.fronts[front_num])
@@ -616,19 +619,6 @@ def predict_step(step,scaler,model,predict_range = 1,do_scale = True,batch = 32,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 ALPHA = 0.5
 def funcE(X):
     res = 0
@@ -636,8 +626,6 @@ def funcE(X):
         res+=(i/len(X))
     return res
 
-def predictSpros(Fdata,time):
-    return int(np.mean([i*random.randint(0,20) for i in Fdata]))
 
 def CheckSendCount(sendCount,minOstat,capacity,pred,zapoln):
     c1 = sendCount>=0
@@ -651,106 +639,52 @@ def CheckZakupkaCount(ZNSC,minOstat,capacity,predSum,zapoln):
     lowerZNSC = minOstat  + predSum - zapoln
     c2 = ZNSC <= upperZNSC and ZNSC >= lowerZNSC
     return c1 and c2
-def f1_1(sendCount,skN,magN,extend_vars):
 
-
-    minimum = 0
-    res = 0
-    for i in extend_vars:
-        if i['war'].id == int(skN) and i['shop'].id == int(magN):            
-            spros = i['spros']
-            if CheckSendCount(sendCount,i['shop'].minimum,i['shop'].capacity,spros,i['shop'].fullness): 
-                res+=i['price']*min(spros,(i['shop'].fullness+sendCount)) 
-                
-
-    return res
 def funcEMin(X):
     res = 0
     for i in X:
         res+=(i/len(X))
     return res
-def f2_1(sendCount,skN,magN,extend_vars):
 
-
-    res = 0
-    minimum = 0
-
-    for i in extend_vars:
-        if i['war'].id == int(skN) and i['shop'].id == int(magN):
-            spros,listForvector,realSpros = i['spros'],i['listForvector'],i['realSpros']
-
-            if CheckSendCount(sendCount,i['shop'].minimum,i['shop'].capacity,spros,i['shop'].fullness): 
-                RNDVector = [(listForvector[gg] - realSpros[gg])/realSpros[gg] if realSpros[gg]!=0 else 0 for gg in range(len(realSpros))]
-                res += (-1*funcE(np.minimum([0],[sendCount+i['shop'].fullness - (1+randomVector)*spros-i['shop'].minimum  for randomVector in RNDVector])))+(funcE(np.maximum([0],[sendCount+i['shop'].fullness - (1+randomVector)*spros-i['shop'].capacity  for randomVector in RNDVector])))
-                
+def f1_1(sendCount,point):
+    res = 0          
+    spros = point['spros']
+    if CheckSendCount(sendCount,point['shop'].minimum,point['shop'].capacity,spros,point['shop'].fullness): 
+        res=point['shop'].point_price*min(spros,(point['shop'].fullness+sendCount)) 
     return res
-def f2_2(send,extend_vars):
 
-
-
+def f2_1(sendCount,point):
     res = 0
-    minimum = 0
-    
-    
-    
-    for i in extend_vars:
-        if i['war'].id == send[2]:
-            skladSumCount = 0
-            predSum = 0
-            for j in extend_vars:
-                if j['shop'].id == int(send[3]):
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    spros = i['spros']
-
-                    if CheckSendCount(send[1],i['shop'].minimum,j['shop'].capacity,spros,j['shop'].fullness):
-                        skladSumCount += send[1]
-                        predSum += spros
-        
-            if CheckZakupkaCount(send[0],i['shop'].minimum,i['war'].capacity,predSum,i['war'].fullness): 
-                res += -min(0,(i['war'].fullness + send[0] - skladSumCount - i['shop'].minimum)) + max(0,(i['war'].fullness + send[0] - skladSumCount - i['war'].capacity))
+    spros,listForvector,realSpros = point['spros'],point['listForvector'],point['realSpros']
+    if CheckSendCount(sendCount,point['shop'].minimum,point['shop'].capacity,spros,point['shop'].fullness): 
+        RNDVector = [(listForvector[gg] - realSpros[gg])/realSpros[gg] if realSpros[gg]!=0 else 0 for gg in range(len(realSpros))]
+        res += (-1*funcE(np.minimum([0],[sendCount+point['shop'].fullness - (1+randomVector)*spros-point['shop'].minimum  for randomVector in RNDVector])))+(funcE(np.maximum([0],[sendCount+point['shop'].fullness - (1+randomVector)*spros-point['shop'].capacity  for randomVector in RNDVector])))        
+    return res
+def f2_2(send):
+    res = 0
+    skladSumCount = 0
+    predSum = 0
+    spros = send[3]['spros']
+    if CheckSendCount(send[1],send[3]['shop'].minimum,send[3]['shop'].capacity,spros,send[3]['shop'].fullness):
+        skladSumCount += send[1]
+        predSum += spros
+    if CheckZakupkaCount(send[0],send[2]['shop'].minimum,send[2]['shop'].capacity,predSum,send[2]['shop'].fullness): 
+        res = -min(0,(send[2]['shop'].fullness + send[0] - skladSumCount - send[2]['shop'].minimum)) + max(0,(send[2]['shop'].fullness + send[0] - skladSumCount - send[2]['shop'].capacity))
                 
     return res
 
-def f2(send,extend_vars):
-    
-    
-        
-    res = f2_2(send,extend_vars) + f2_1(send[1],send[2],send[3],extend_vars)
-
+def f2(send):
+    res = f2_2(send) + f2_1(send[1],send[2])
     return res
-def f1(send,extend_vars):
-    
-    res = f1_1(send[1],send[2],send[3],extend_vars)
-
+def f1(send):
+    res = f1_1(send[1],send[2])
     return -res
 
-
-
-
-
-
-
-
 def main_prediction(full):
-    
     start = time.time()
-    print('start')
+    print('start',time.ctime(time.time()))
     problem = Problem(num_of_variables=2, objectives=[f1, f2], variables_range=[(0, 1000),(0, 1000)],expand = False,extend_vars = full)
     evo = Evolution(problem,mutation_param=8,num_of_generations = 100,num_of_individuals = 100,tournament_prob = 0.8,crossover_param = 9,crossover_probability = 0.9,mutation_probability = 0.25)
-    func = [[i.objectives,i.features] for i in evo.evolve()]
-    print(func,time.time() - start)
+    func = [[i.objectives,i.features[:2],[j['shop'].point_id for j in i.features[2:]]] for i in evo.evolve()]
+    print(time.time() - start)
     return func
