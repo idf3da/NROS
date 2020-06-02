@@ -21,7 +21,7 @@ class ProductType(db.Model):  # pylint: disable=too-few-public-methods
     seasonality = db.Column(db.Integer)
     lstms = db.relationship('LSTM', backref='product_type', lazy='dynamic')
     user_token = db.Column(db.String, db.ForeignKey('user.token'))
-    tag = db.Column(db.Integer, db.ForeignKey('tag.id'))
+    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'))
 
 
 class Point(db.Model):  # pylint: disable=too-few-public-methods
@@ -52,6 +52,7 @@ class User(db.Model):  # pylint: disable=too-few-public-methods
     privilege_level = db.Column(db.Integer)
     token = db.Column(db.String, unique=True)
     sales = db.relationship("Sale", backref='user', lazy='dynamic')
+    tags = db.relationship("Tag", backref='user', lazy='dynamic')
     points = db.relationship("Point", backref='user', lazy='dynamic')
     product_types = db.relationship("ProductType", backref='user', lazy='dynamic')
     lstms = db.relationship("LSTM", backref='user', lazy='dynamic')
