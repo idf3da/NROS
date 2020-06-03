@@ -2,7 +2,7 @@
 	<v-app id="web_ui">
 		<vue-headful :title="currentRouteName ? 'NROS — ' + currentRouteName : 'NROS'" />
 
-		<v-app-bar app clipped-left dense flat hide-on-scrol overlap>
+		<v-app-bar app clipped-left dense flat hide-on-scrol overlap :style=" currentRouteName === 'Home' ? 'background: transparent' : ''">
 			<v-img src="projectIconWhite.png" max-height="40" max-width="40"></v-img>
 
 			<div class="ml-2" v-if="currentRouteName !== 'Home'">
