@@ -53,7 +53,8 @@ class User(db.Model):  # pylint: disable=too-few-public-methods
     sales = db.relationship("Sale", backref='user', lazy='dynamic')
     tags = db.relationship("Tag", backref='user', lazy='dynamic')
     points = db.relationship("Point", backref='user', lazy='dynamic')
-    product_types = db.relationship("ProductType", backref='user', lazy='dynamic')
+    product_types = db.relationship(
+        "ProductType", backref='user', lazy='dynamic')
     lstms = db.relationship("LSTM", backref='user', lazy='dynamic')
 
 
