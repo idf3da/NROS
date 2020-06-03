@@ -622,7 +622,7 @@ class LSTMApi(Resource):
             abort(400, "No data")
         db.session.delete(LSTM.query.get_or_404(lstm_id))
         db.session.commit()
-        lstm = create_lstm_with_id(request.json, lstm_id, user.token)
+        lstm = create_lstm(request.json, user.token)  # TODO: заменить на with id
         db.session.add(lstm)
         db.session.commit()
         return {'lstm': json_lstm(lstm)}, 201

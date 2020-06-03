@@ -5,3 +5,4 @@
 /api_backend/migrations/
 /migrations/
 api_backend/.vscode/launch.json
+api_backend/.vscode/settings.json
