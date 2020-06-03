@@ -8,6 +8,31 @@
 				Close
 			</v-btn>
 		</v-snackbar>
+		<v-snackbar v-model="model_trained" bottom :color="'green'" :timeout="5000">
+			Your model have trained
+			<br />
+			We officially congratulate you!
+			<v-btn dark text @click="snackbar = false">
+				Close
+			</v-btn>
+		</v-snackbar>
+
+		<v-snackbar v-model="training_error" bottom :color="'error'" :timeout="5000">
+			Not enough data for training the model
+			<br />
+			Should be >= 2 days
+			<v-btn dark text @click="training_error = false">
+				Close
+			</v-btn>
+		</v-snackbar>
+		<v-snackbar v-model="prediction_error" bottom :color="'blue'" :timeout="5000">
+			Not enough data to make prediction
+			<br />
+			;- (
+			<v-btn dark text @click="prediction_error = false">
+				Close
+			</v-btn>
+		</v-snackbar>
 		<v-dialog v-model="edit_dialog">
 			<v-card>
 				<v-card-title>
@@ -42,7 +67,7 @@
 								<v-text-field v-model="editedItem.minimum" hide-details single-line type="number" label="Minumum"></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.before_range" hide-details single-line type="number" label="Before range"></v-text-field>
+								<v-text-field v-model="editedItem.before_range" hide-details single-line type="number" label="Before range (recomended: 3~10)"></v-text-field>
 							</v-col>
 						</v-row>
 					</v-container>
@@ -55,20 +80,27 @@
 				</v-card-actions>
 			</v-card>
 		</v-dialog>
+
 		<v-container fluid>
 			<v-row align="start" justify="space-around">
 				<v-col>
-					<v-card class="pa-1" outlined tile :loading="!product_items_loaded">
+					<v-card class="pa-1" outlined tile>
 						<v-card-title class="mt-n2">
 							Product Items
 							<v-spacer></v-spacer>
+
 							<v-text-field class="mt-n4" v-model="search1" append-icon="mdi-magnify" label="Search" hide-details></v-text-field>
 						</v-card-title>
-						<v-data-table :height="180" :headers="product_items_headers" :items="product_items" :search="search1">
+						<v-data-table :loading="!product_items_loaded" :height="180" :headers="product_items_headers" :items="product_items" :search="search1">
 							<template v-slot:item.actions="{ item }">
-								<v-icon @click="send4training(item)">
-									mdi-currency-usd
-								</v-icon>
+								<v-row>
+									<v-icon color="cyan accent-1" @click="getPrediction(item)">
+										mdi-currency-usd
+									</v-icon>
+									<v-icon color="teal darken-1" class="pl-0" @click="trainAll(item)">
+										mdi-currency-usd
+									</v-icon>
+								</v-row>
 							</template>
 						</v-data-table>
 					</v-card>
@@ -77,7 +109,6 @@
 					<v-card outlined tile>
 						<v-card-text class="px-0 pa-0">
 							<yandex-map disabled :zoom="13" :coords="[55.753, 37.62]" :controls="[]" style="height: 300px;" @map-was-initialized="initHandler">
-								<ymap-marker :coords="[55.745, 37.6]" marker-id="3" hint-content="That's you" :icon="markerIcon" />
 								<ymap-marker v-bind:key="item" :coords="item" :icon="storeIcon" v-for="item in store_coordinates"></ymap-marker>
 							</yandex-map>
 						</v-card-text>
@@ -122,10 +153,11 @@
 				<v-col v-if="store_data_loaded">
 					<v-card style="width: 100%" class="pa-0" outlined tile>
 						<v-card-title class="mt-n2 mb-1"
-							>New predictions
+							>Predictions for:
+							<!-- {{ prediction[0]["target_id"] }} -->
 							<v-spacer></v-spacer>
 						</v-card-title>
-						<v-data-table class="mt-n3" :height="400" :headers="prediction_headers" :items="predictions" iteam-key="product_type_id"> </v-data-table>
+						<v-data-table class="mt-n3" :height="400" :headers="prediction_headers" :items="prediction[0]['predictions']" iteam-key="product_type_id"> </v-data-table>
 					</v-card>
 				</v-col>
 			</v-row>
@@ -175,10 +207,13 @@
 				singleExpand: true,
 				editedProductIndex: -1,
 				editedShopIndex: -1,
+				model_trained: false,
 				store_data_loaded: false,
 				table_pagination: {},
+				prediction_error: false,
 				expanded_table: [],
 				snackbar: false,
+				training_error: false,
 				search_prediction_product_id: "",
 				expanded: [],
 				edit_dialog: false,
@@ -223,11 +258,10 @@
 					{ text: "Latitude", value: "latitude" },
 				],
 				prediction_headers: [
-					{ text: "Target product", value: "product_type_id" },
-					{ text: "Store uantity", value: "shop_count" },
+					{ text: "Store quantity", value: "shop_c" },
 					{ text: "To store", value: "shop_id" },
 					{ text: "From warehouse", value: "war_id" },
-					{ text: "Warehouse quantity", value: "war_count" },
+					{ text: "Warehouse quantity", value: "war_c" },
 				],
 				sub_table_pagination: [],
 				table_selected: [],
@@ -242,7 +276,7 @@
 				store_data: [],
 				product_items: [],
 				property_items: [],
-				prediction: [],
+				prediction: [[], []],
 			};
 		},
 		created() {
@@ -311,7 +345,7 @@
 			},
 
 			send4training(product) {
-				if (product.lstm === true || (!product.lstm && product.before_range > 0)) {
+				if ((product.lstm === true || (!product.lstm && product.before_range > 0)) && product.before_range > 0) {
 					axios
 						.post("http://127.0.0.1:5000/api/lstms", {
 							Authorization: localStorage.getItem("token") || "",
@@ -319,26 +353,47 @@
 							point_id: product.point_id,
 							product_type_id: product.product_type_id,
 						})
-						.then(function(response) {
-							console.log(response);
+						.then(() => {
+							this.model_trained = true;
 						})
-						.catch(function(error) {
+						.catch((error) => {
 							console.log(error);
+							if (error.response.status == 409) {
+								this.training_error = true;
+							}
 						});
 				} else {
 					this.snackbar = true;
 				}
 			},
 
+			trainAll(product) {
+				axios
+					.post("http://127.0.0.1:5000/api/train_all", {
+						Authorization: localStorage.getItem("token") || "",
+						product_type_id: product.id,
+					})
+					.then(() => {
+						this.getPrediction(product);
+					});
+			},
+
 			getPrediction(product) {
 				axios
-					.post("http://127.0.0.1:5000/api/lstms", {
+					.post("http://127.0.0.1:5000/api/predict", {
 						Authorization: localStorage.getItem("token") || "",
-						product_type_id: product.product_type_id,
+						product_type_id: product.id,
 					})
 					.then((response) => {
 						this.prediction.push(response.data);
+					})
+					.catch((error) => {
+						if (error.response.status == 409) {
+							this.prediction_error = true;
+						}
 					});
+
+				console.log(product.id, product);
 			},
 
 			editStoreProduct(product) {

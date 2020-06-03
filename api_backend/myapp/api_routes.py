@@ -134,90 +134,198 @@ def create_lstm(query, user_token):
             and sale.user_token = '{2}'
         group by 1 order by 1 desc
     '''.format(query['point_id'], query['product_type_id'], user_token)).fetchall()  # and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
-    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
-    model = LSTM.query.filter(LSTM.point_id == str(query['point_id']), LSTM.product_type_id == str(query['product_type_id']), LSTM.user_token == str(user_token)).first()  # +user_id
-    if model is None:
-        slen = int(ProductType.query.filter(ProductType.id == str(query['product_type_id'])).first().seasonality)  # ,ProductType.user_token == str(user_token)
+    print(data)
+    if len(data) >= 2:
+        tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+        model = LSTM.query.filter(LSTM.point_id == str(query['point_id']), LSTM.product_type_id == str(query['product_type_id']), LSTM.user_token == str(user_token)).first()  # +user_id
+        if model is None:
+            slen = int(ProductType.query.filter(ProductType.id == str(query['product_type_id'])).first().seasonality)  # ,ProductType.user_token == str(user_token)
+        else:
+            slen = int(model.product_type.seasonality)
+            before_range = int(model.before_range)
+            model_id = model.id
+        if 'before_range' in query:
+            if before_range != query['before_range']:
+                model = None
+                before_range = int(query['before_range'])
+        alpha, beta, gamma, model, scaler, prediction, before_range, lstm_prediciton = utils.trainModelsAndPredict(
+            data, before_range + 1, model, slen)  # +1
+        step_g = 15
+
+        if alpha == -1:
+            steps = db.engine.execute(
+                '''
+            with dates as (
+                select generate_series(
+                    (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+                ) as date
+            )
+            select
+                dates.date,
+                coalesce(sum(sale.count), 0)
+                from dates
+                left join sale
+                    on date_part('day', sale.date) = date_part('day', dates.date)
+                    and date_part('month', sale.date) = date_part('month', dates.date)
+                    and date_part('year', sale.date) = date_part('year', dates.date)
+                    and sale.point_id = '{0}'
+                    and sale.product_type_id = '{1}'
+                    and sale.user_token = '{2}'
+                group by 1 order by 1 desc limit {3}
+            '''.format(query['point_id'], query['product_type_id'], user_token, step_g + 3 if step_g >= before_range else before_range + 3)).fetchall()
+            cont_res = utils.predict_step(
+                steps,
+                before_range=before_range + 1,
+                scaler=scaler,
+                model=model)
+            spros, list_forvector, real_spros = lstm_prediciton, cont_res[0], cont_res[1]
+        else:
+            steps = db.engine.execute('''
+            with dates as (
+                select generate_series(
+                    (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+                ) as date
+            )
+            select
+                dates.date,
+                coalesce(sum(sale.count), 0)
+                from dates
+                left join sale
+                    on date_part('day', sale.date) = date_part('day', dates.date)
+                    and date_part('month', sale.date) = date_part('month', dates.date)
+                    and date_part('year', sale.date) = date_part('year', dates.date)
+                    and sale.point_id = '{0}'
+                    and sale.product_type_id = '{1}'
+                    and sale.user_token = '{2}'
+                group by 1 order by 1 desc limit {3}
+            '''.format(query['point_id'], query['product_type_id'], user_token, 367)).fetchall()
+            res_r = utils.predictWinters(
+                [row[1] for row in steps], alpha, beta, gamma, slen, step_g)
+            spros, list_forvector, real_spros = prediction, res_r[0], res_r[1]
+
+        # print(spros,listForvector,realSpros,before_range,lstm_prediciton,a,b,g)
+        return LSTM(
+            id=model_id,
+            point_id=query['point_id'],
+            product_type_id=query['product_type_id'],
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+            model=pickle.dumps(model),
+            scope=pickle.dumps(scaler),
+            prediction=prediction,
+            lstm_pred=lstm_prediciton,
+            before_range=before_range,
+            listForvector=list_forvector,
+            realSpros=real_spros,
+            user_token=user_token)
     else:
-        slen = model.product_type.seasonality
-        before_range = model.before_range
-        model_id = model.id
-    if 'before_range' in query:
-        if before_range != query['before_range']:
-            model = None
-            before_range = query['before_range']
-    alpha, beta, gamma, model, scaler, prediction, before_range, lstm_prediciton = utils.trainModelsAndPredict(
-        data, before_range + 1, model, slen)  # +1
-    step_g = 15
+        return ''
 
-    if alpha == -1:
-        steps = db.engine.execute(
-            '''
-        with dates as (
-            select generate_series(
-                (select min(date) from sale), (select max(date) from sale), '1 day'::interval
-            ) as date
-        )
-        select
-            dates.date,
-            coalesce(sum(sale.count), 0)
-            from dates
-            left join sale
-                on date_part('day', sale.date) = date_part('day', dates.date)
-                and date_part('month', sale.date) = date_part('month', dates.date)
-                and date_part('year', sale.date) = date_part('year', dates.date)
-                and sale.point_id = '{0}'
-                and sale.product_type_id = '{1}'
-                and sale.user_token = '{2}'
-            group by 1 order by 1 desc limit {3}
-        '''.format(query['point_id'], query['product_type_id'], user_token, step_g + 3 if step_g >= before_range else before_range + 3)).fetchall()
-        cont_res = utils.predict_step(
-            steps,
-            before_range=before_range + 1,
-            scaler=scaler,
-            model=model)
-        spros, list_forvector, real_spros = lstm_prediciton, cont_res[0], cont_res[1]
+def create_lstm_with_id(query, lstm_id, user_token):
+    """ Function creates LSTM with id from query.
+        :param query: (dict) Example: { shop_id: 1,
+                                        product_type_id: 1,
+                                        alpha: 0.1,
+                                        beta: 0.1,
+                                        gamma: 0.1
+                                      }
+        :param lstm_id: (int)
+        :return LSTM: LSTM object
+    """
+    before_range = None
+    slen = None
+    data = db.engine.execute('''
+    with dates as (
+        select generate_series(
+            (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+        ) as date
+    )
+    select
+        dates.date,
+        coalesce(sum(sale.count), 0)
+        from dates
+        left join sale
+            on date_part('day', sale.date) = date_part('day', dates.date)
+            and date_part('month', sale.date) = date_part('month', dates.date)
+            and date_part('year', sale.date) = date_part('year', dates.date)
+            and sale.point_id = {0}
+            and sale.product_type_id = {1}
+            and sale.user_token = {2}
+        group by 1 order by 1 desc
+    '''.format(query['point_id'], query[
+        'product_type_id'],user_token)).fetchall()  # and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
+    if len(data) >= 2:
+        tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+        model = LSTM.query.filter(LSTM.point_id == str(query['point_id']), LSTM.product_type_id == str(query['product_type_id']), LSTM.user_token == str(user_token)).first()  # +user_id
+        if model is None:
+            slen = int(ProductType.query.filter(ProductType.id == str(query['product_type_id'])).first().seasonality)  # ,ProductType.user_token == str(user_token)
+        else:
+            slen = int(model.product_type.seasonality)
+            before_range = int(model.before_range)
+            model_id = model.id
+        if 'before_range' in query:
+            if before_range != query['before_range']:
+                model = None
+                before_range = int(query['before_range'])
+        alpha, beta, gamma, model, scaler, prediction, before_range, lstm_prediciton = utils.trainModelsAndPredict(
+            data, before_range + 1, model, slen)  # +1
+        step_g = 15
+
+        if alpha == -1:
+            steps = db.engine.execute('''
+            with dates as (
+                select generate_series(
+                    (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+                ) as date
+            )
+            select
+                dates.date,
+                coalesce(sum(sale.count), 0)
+                from dates
+                left join sale
+                    on date_part('day', sale.date) = date_part('day', dates.date)
+                    and date_part('month', sale.date) = date_part('month', dates.date)
+                    and date_part('year', sale.date) = date_part('year', dates.date)
+                    and sale.point_id = {0}
+                    and sale.product_type_id = {1}
+                    and sale.user_token = {2}
+                group by 1 order by 1 desc limit {3}
+            '''.format(query['point_id'], query['product_type_id'], user_token,
+                    step_g + 3 if step_g >= before_range else before_range + 3)).fetchall()
+            cont_res = utils.predict_step(steps, before_range=before_range + 1, scaler=scaler, model=model)
+            spros, list_forvector, real_spros = lstm_prediciton, cont_res[0], cont_res[1]
+        else:
+            steps = db.engine.execute('''
+            with dates as (
+                select generate_series(
+                    (select min(date) from sale), (select max(date) from sale), '1 day'::interval
+                ) as date
+            )
+            select
+                dates.date,
+                coalesce(sum(sale.count), 0)
+                from dates
+                left join sale
+                    on date_part('day', sale.date) = date_part('day', dates.date)
+                    and date_part('month', sale.date) = date_part('month', dates.date)
+                    and date_part('year', sale.date) = date_part('year', dates.date)
+                    and sale.point_id = {0}
+                    and sale.product_type_id = {1}
+                    and sale.user_token = {2}
+                group by 1 order by 1 desc limit {3}
+            '''.format(query['point_id'], query['product_type_id'],user_token, 367)).fetchall()
+            res_r = utils.predictWinters([row[1] for row in steps], alpha, beta, gamma, slen, step_g)
+            spros, list_forvector, real_spros = prediction, res_r[0], res_r[1]
+
+        # print(spros,listForvector,realSpros)
+        return LSTM(id=lstm_id, point_id=query['point_id'], product_type_id=query[
+            'product_type_id'], alpha=alpha, beta=beta,
+                    gamma=gamma, model=pickle.dumps(model), scope=pickle.dumps(scaler), prediction=prediction,
+                    lstm_pred=lstm_prediciton, before_range=before_range,
+                    listForvector=list_forvector, realSpros=real_spros, user_token=user_token)
     else:
-        steps = db.engine.execute('''
-        with dates as (
-            select generate_series(
-                (select min(date) from sale), (select max(date) from sale), '1 day'::interval
-            ) as date
-        )
-        select
-            dates.date,
-            coalesce(sum(sale.count), 0)
-            from dates
-            left join sale
-                on date_part('day', sale.date) = date_part('day', dates.date)
-                and date_part('month', sale.date) = date_part('month', dates.date)
-                and date_part('year', sale.date) = date_part('year', dates.date)
-                and sale.point_id = '{0}'
-                and sale.product_type_id = '{1}'
-                and sale.user_token = '{2}'
-            group by 1 order by 1 desc limit {3}
-        '''.format(query['point_id'], query['product_type_id'], user_token, 367)).fetchall()
-        res_r = utils.predictWinters(
-            [row[1] for row in steps], alpha, beta, gamma, slen, step_g)
-        spros, list_forvector, real_spros = prediction, res_r[0], res_r[1]
-
-    # print(spros,listForvector,realSpros,before_range,lstm_prediciton,a,b,g)
-    return LSTM(
-        id=model_id,
-        point_id=query['point_id'],
-        product_type_id=query['product_type_id'],
-        alpha=alpha,
-        beta=beta,
-        gamma=gamma,
-        model=pickle.dumps(model),
-        scope=pickle.dumps(scaler),
-        prediction=prediction,
-        lstm_pred=lstm_prediciton,
-        before_range=before_range,
-        listForvector=list_forvector,
-        realSpros=real_spros,
-        user_token=user_token)
-
+        return ''
 
 def json_sale(sale):
     """ Function converts Sale object into dictionary
@@ -305,7 +413,7 @@ def make_prediction(query, user_token):
                              'listForvector': i.listForvector, 'realSpros': i.realSpros})
         print(full)
         return utils.main_prediction(full)
-    return 409
+    return ''
 
 
 def create_user(name, email, password_hash, token, privilege_level=1):
@@ -472,10 +580,13 @@ class ProductTypesApi(Resource):
         """
         if not request.json:
             abort(400, "No data")
-        db.session.delete(ProductType.query.get_or_404(product_type_id))
-        db.session.commit()
-        product_type = create_type_with_id(
-            request.json, product_type_id, user.token)
+        product_type = ProductType.query.get_or_404(product_type_id)
+        if request.json['name'] is not None:
+            product_type.name=request.json['name']
+        if request.json['price'] is not None:
+            product_type.price=request.json['price']
+        if request.json['seasonality'] is not None:
+            product_type.seasonality=request.json['seasonality']
         db.session.add(product_type)
         db.session.commit()
         return {'product_type': json_type(product_type)}, 201
@@ -543,9 +654,13 @@ class PointApi(Resource):
         """
         if not request.json:
             abort(400, "No data")
-        db.session.delete(Point.query.get_or_404(point_id))
-        db.session.commit()
-        point = create_point_with_id(request.json, point_id, user.token)
+        point = Point.query.get_or_404(point_id)
+        if request.json['latitude'] is not None:
+            point.latitude=request.json['latitude']
+        if request.json['longitude'] is not None:
+            point.longitude=request.json['longitude']
+        if request.json['address'] is not None:
+            point.address=request.json['address']
         db.session.add(point)
         db.session.commit()
         return {'point': json_point(point)}, 201
@@ -580,6 +695,8 @@ class ListLSTMsApi(Resource):
         if not request.json:
             abort(400, "No data")
         lstm = create_lstm(request.json, user.token)
+        if lstm == '':
+            return lstm, 409
         if lstm.id is not None:
             db.session.delete(LSTM.query.get_or_404(lstm.id))
             db.session.commit()
@@ -587,6 +704,27 @@ class ListLSTMsApi(Resource):
         db.session.commit()
         return {'lstm': json_lstm(lstm)}, 200
 
+class TrainAllLSTMS(Resource):
+    """ Class for training all LSTMs """
+
+    @staticmethod
+    @require_authentication
+    def post(user):
+        """ Method used to train all LSTMs """
+        if (not request.json) or (request.json['product_type_id'] is None):
+            abort(400, "No data")
+        lstms = []
+        for point in Point.query.filter(Point.user_token == user.token):
+            lstm = create_lstm({'point_id': point.id, 'before_range': 2, 'product_type_id': request.json['product_type_id']}, user.token)
+            if lstm != 409:
+                if lstm.id is not None:
+                    db.session.delete(LSTM.query.get_or_404(lstm.id))
+                    db.session.commit()
+                lstms.append(lstm)
+                db.session.add(lstm)
+                db.session.commit()
+                
+        return {'LSTMs': [json_lstm(lstm) for lstm in lstms]}, 200
 
 class LSTMApi(Resource):
     """ Class that gets/updates/deletes LSTM by id """
@@ -620,9 +758,9 @@ class LSTMApi(Resource):
         """
         if not request.json:
             abort(400, "No data")
-        db.session.delete(LSTM.query.get_or_404(lstm_id))
-        db.session.commit()
-        lstm = create_lstm(request.json, user.token)  # TODO: заменить на with id
+        lstm = LSTM.query.get_or_404(lstm_id)
+        if request.json['before_range'] is not None:
+            lstm.before_range=request.json['before_range']
         db.session.add(lstm)
         db.session.commit()
         return {'lstm': json_lstm(lstm)}, 201
@@ -693,9 +831,13 @@ class SaleApi(Resource):
         """
         if not request.json:
             abort(400, "No data")
-        db.session.delete(Sale.query.get_or_404(sale_id))
-        db.session.commit()
-        sale = create_sale_with_id(request.json, sale_id, user.token)
+        sale = Sale.query.get_or_404(sale_id)
+        if request.json['date'] is not None:
+            sale.date=request.json['date']
+        if request.json['price'] is not None:
+            sale.price=request.json['price']
+        if request.json['count'] is not None:
+            sale.count=request.json['count']
         db.session.add(sale)
         db.session.commit()
         return {'sale': json_sale(sale)}, 201
@@ -706,16 +848,16 @@ class PredictApi(Resource):
 
     @staticmethod
     @require_authentication
-    def get(user):
+    def post(user):
+        print("a"*10, request.json)
         """ Method used to get list of all Sales
             :return: list[Sale]
         """
         predictions = make_prediction(request.json, user.token)
-        if predictions == 409:
-            return predictions
+        if predictions == '':
+            return predictions, 409
         print(predictions)
-        return {'predictions': [json_prediction(
-            prediction) for prediction in predictions]}, 200
+        return {'target_id': request.json['product_type_id'] ,'predictions': [json_prediction(prediction) for prediction in predictions]}, 200
 
 
 class ListTagsApi(Resource):
@@ -759,17 +901,19 @@ class ListTagsApi(Resource):
         if not request.json:
             abort(400, "No data")
         tag = Tag.query.filter(Tag.point_id == request.json['point_id'], Tag.product_type_id == request.json['product_type_id'], Tag.user_token == user.token).first()
-        print(tag)
-        if tag is not None:
-            tag_id = tag.id
-            db.session.delete(tag)
-            db.session.commit()
-            print(tag_id)
-            tag = create_tag_with_id(request.json, tag_id, user.token)
-            db.session.add(tag)
-            db.session.commit()
-            return {'tag': json_tag(tag)}, 201
-        return 404
+        if tag is None:
+            abort(404, "Not found")
+        if request.json['minimum'] is not None:
+            tag.minimum=request.json['minimum']
+        if request.json['capacity'] is not None:
+            tag.capacity=request.json['capacity']
+        if request.json['sell_price'] is not None:
+            tag.sell_price=request.json['sell_price']
+        if request.json['fullness'] is not None:
+            tag.fullness=request.json['fullness']
+        db.session.add(tag)
+        db.session.commit()
+        return {'tag': json_tag(tag)}, 201
 
 
 class TagsApi(Resource):
@@ -804,9 +948,15 @@ class TagsApi(Resource):
         """
         if not request.json:
             abort(400, "No data")
-        db.session.delete(Tag.query.get_or_404(tag_id))
-        db.session.commit()
-        tag = create_tag_with_id(request.json, tag_id, user.token)
+        tag = Tag.query.get_or_404(tag_id)
+        if request.json['minimum'] is not None:
+            tag.minimum=request.json['minimum']
+        if request.json['capacity'] is not None:
+            tag.capacity=request.json['capacity']
+        if request.json['sell_price'] is not None:
+            tag.sell_price=request.json['sell_price']
+        if request.json['fullness'] is not None:
+            tag.fullness=request.json['fullness']
         db.session.add(tag)
         db.session.commit()
         return {'tag': json_tag(tag)}, 201
@@ -1045,6 +1195,8 @@ class IntegrateApi(Resource):
                     Tag.product_type_id == product_type_id,
                     Tag.user_token == user.token).first()
                 # print(tag)
+                model = LSTM.query.filter(LSTM.point_id == point_id, LSTM.product_type_id == product_type_id, LSTM.user_token == user.token).first()
+                # print(tag)
                 if tag is None:
                     # print('in none')
                     tag = Tag(
@@ -1067,7 +1219,8 @@ class IntegrateApi(Resource):
                         'longitude': point.longitude,
                         'address': point.address, 'fullness': store_item['stock'],
                         'capacity': 1000, 'minimum': 0,
-                        'lstm': LSTM.query.filter(LSTM.point_id == point_id, LSTM.product_type_id == product_type_id, LSTM.user_token == user.token).first() is not None
+                        'lstm': model is not None,
+                        'before_range': model.before_range if model is not None else 0
                     }
                 else:
                     tag.sell_price = sell_price
@@ -1080,7 +1233,8 @@ class IntegrateApi(Resource):
                         'sell_price': sell_price,
                         'fullness': store_item['stock'],
                         'capacity': tag.capacity, 'minimum': tag.minimum,
-                        'lstm': LSTM.query.filter(LSTM.point_id == point_id, LSTM.product_type_id == product_type_id, LSTM.user_token == user.token).first() is not None,
+                        'lstm': model is not None,
+                        'before_range': model.before_range if model is not None else 0,
                         'latitude': point.latitude,
                         'longitude': point.longitude,
                         'address': point.address,
@@ -1107,11 +1261,11 @@ class IntegrateApi(Resource):
                 user.moysklad_login,
                 user.moysklad_password))
         for item in response.json()['rows']:
-            sale_id = item['id']
-            date = datetime.datetime.fromisoformat(item['updated'])
+            date = datetime.datetime.fromisoformat(item['moment'])
             point_id = item['store']['id']
             shops_list.add(point_id)
             for position in item['positions']['rows']:
+                sale_id = position['id']
                 count = position['quantity']
                 product_type_id = position['assortment']['id']
                 price = position['price']
@@ -1143,7 +1297,7 @@ class IntegrateApi(Resource):
             point_id = item['sourceStore']['meta']['href'].split('/')[-1]
             if point_id not in shops_list:
                 sale_id = item['id']
-                date = datetime.datetime.fromisoformat(item['updated'])
+                date = datetime.datetime.fromisoformat(item['moment'])
                 for position in item['positions']['rows']:
                     count = position['quantity']
                     product_type_id = position['assortment']['id']
@@ -1182,3 +1336,6 @@ api.add_resource(ListLSTMsApi, '/api/lstms')
 api.add_resource(ListSalesApi, '/api/sales')
 api.add_resource(PredictApi, '/api/predict')
 api.add_resource(ListTagsApi, '/api/tags')
+api.add_resource(TrainAllLSTMS, '/api/train_all')
+
+

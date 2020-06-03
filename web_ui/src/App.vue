@@ -1,5 +1,16 @@
 <template>
 	<v-app id="web_ui">
+		<v-snackbar v-model="format_success" bottom :color="'error'" :timeout="5000">
+			You have successfully deleted all data
+			<br />
+			From all data bases! Well Done!
+			<v-icon color="yellow">
+				mdi-thumb-up
+			</v-icon>
+			<v-btn dark text @click="snackbar = false">
+				Close
+			</v-btn>
+		</v-snackbar>
 		<vue-headful :title="currentRouteName ? 'NROS — ' + currentRouteName : 'NROS'" />
 
 		<v-app-bar app clipped-left dense flat hide-on-scrol overlap>
@@ -46,6 +57,9 @@
 				<v-list>
 					<v-list-item link dense v-for="(notificationItem, index) in userMenuItems" :key="index" router :to="notificationItem.link">
 						<v-list-item-title>{{ notificationItem.title }}</v-list-item-title>
+					</v-list-item>
+					<v-list-item link dense router>
+						<v-list-item-title @click="formatDB" style="color: red;">Format DB</v-list-item-title>
 					</v-list-item>
 					<v-list-item link dense router>
 						<v-list-item-title @click="logout">Log out</v-list-item-title>
@@ -203,6 +217,13 @@
 									<ValidationProvider v-slot="{ errors }" name="Password repeat" rules="required|confirmed:password">
 										<v-text-field color="red" v-model="passwordRepeat" :error-messages="errors" :append-icon="showRepeatPassword ? 'mdi-eye' : 'mdi-eye-off'" :type="showRepeatPassword ? 'text' : 'password'" label="Password Repeat" hint="Enter your password again" @click:append="showRepeatPassword = !showRepeatPassword"></v-text-field>
 									</ValidationProvider>
+									<br />
+									<ValidationProvider v-slot="{ errors }" name="MoySklad Login" rules="required|max:32">
+										<v-text-field color="red" v-model="MoySkladLogin" :counter="32" :error-messages="errors" label="MoySklad Login" hint="Enter your name" required></v-text-field>
+									</ValidationProvider>
+									<ValidationProvider vid="MoySkladPassword" v-slot="{ errors }" name="Your Sklad passowrd" rules="required|min:8">
+										<v-text-field color="red" v-model="MoySkladPassword" :error-messages="errors" :append-icon="showMoySkladPassword ? 'mdi-eye' : 'mdi-eye-off'" :type="showMoySkladPassword ? 'text' : 'password'" label="MoySklad Password" hint="Enter your password" @click:append="showMoySkladPassword = !showMoySkladPassword"></v-text-field>
+									</ValidationProvider>
 								</form>
 							</ValidationObserver>
 						</v-container>
@@ -298,14 +319,18 @@
 		},
 		data: () => ({
 			name: "",
+			MoySkladLogin: "",
 			email: "",
 			password: "",
+			MoySkladPassword: "",
 			passwordRepeat: "",
 			signInError: "",
 			signUpError: "",
 			isSignInError: false,
 			isSignUpError: false,
+			format_success: false, // +100500
 			showPassword: false,
+			showMoySkladPassword: false,
 			showRepeatPassword: false,
 			signInDialog: false,
 			signUpDialog: false,
@@ -382,6 +407,19 @@
 			});
 		},
 		methods: {
+			formatDB() {
+				axios
+					.delete("http://127.0.0.1:5000/api/user/integrate", {
+						Authorization: localStorage.getItem("token") || "",
+					})
+					.then(() => {
+						this.format_success = true;
+					})
+					.catch(() => {
+						alert("Ohh ohh some thing went wrong\n please contact your administrator");
+					});
+			},
+
 			signInToSignUpDialog: function() {
 				this.signInDialog = false;
 				this.signUpDialog = true;
