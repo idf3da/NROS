@@ -9,12 +9,12 @@ import requests
 from flask import request, abort
 from flask_restful import Resource
 
+import utils
 from myapp import api
 from myapp.__init__ import db
 from myapp.consts import Consts
 from myapp.models import ProductType, Point, LSTM, Sale, User, Tag
 from myapp.utils import Utils
-import utils
 
 
 def json_type(product_type):
@@ -61,7 +61,8 @@ def json_point(point):
         :param point: (Point) Point object
         :return dict: dictionary containing converted Point
         """
-    return {'id': point.id, 'address': point.address, 'latitude':point.latitude, 'logitude':point.longitude}#, 'latitude':point.latitude, 'longitude': point.longitude}
+    return {'id': point.id, 'address': point.address, 'latitude': point.latitude,
+            'logitude': point.longitude}  # , 'latitude':point.latitude, 'longitude': point.longitude}
 
 
 def create_point(query, user_token):
@@ -69,7 +70,7 @@ def create_point(query, user_token):
         :param query: (dict) Example: { address: "Moscow" }
         :return Point: Point object
     """
-    return Point(address=query['address'], user_token=user_token)#, latitude = query['latitude'], longitude = query['longitude'])
+    return Point(address=query['address'], user_token=user_token)  # , latitude = query['latitude'], longitude = query['longitude'])
 
 
 def create_point_with_id(query, point_id, user_token):
@@ -78,7 +79,7 @@ def create_point_with_id(query, point_id, user_token):
         :param shop_id: (int)
         :return Shop: Shop object
     """
-    return Point(id=point_id, address=query['address'], user_token=user_token)#, latitude = query['latitude'], longitude = query['longitude'])
+    return Point(id=point_id, address=query['address'], user_token=user_token)  # , latitude = query['latitude'], longitude = query['longitude'])
 
 
 def json_lstm(lstm):
@@ -132,20 +133,11 @@ def create_lstm(query, user_token):
             and sale.product_type_id = '{1}'
             and sale.user_token = '{2}'
         group by 1 order by 1 desc
-    '''.format(
-            query['point_id'],
-            query['product_type_id'],
-            user_token)).fetchall()  # and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
+    '''.format(query['point_id'], query['product_type_id'], user_token)).fetchall()  # and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
     tb._SYMBOLIC_SCOPE.value = True  # ! костыль
-    model = LSTM.query.filter(
-        LSTM.point_id == str(
-            query['point_id']),
-        LSTM.product_type_id == str(
-            query['product_type_id']),
-        LSTM.user_token == str(user_token)).first()  # +user_id
+    model = LSTM.query.filter(LSTM.point_id == str(query['point_id']), LSTM.product_type_id == str(query['product_type_id']), LSTM.user_token == str(user_token)).first()  # +user_id
     if model is None:
-        slen = int(ProductType.query.filter(ProductType.id == str(query['product_type_id'])).first(
-        ).seasonality)  # ,ProductType.user_token == str(user_token)
+        slen = int(ProductType.query.filter(ProductType.id == str(query['product_type_id'])).first().seasonality)  # ,ProductType.user_token == str(user_token)
     else:
         slen = model.product_type.seasonality
         before_range = model.before_range
@@ -178,13 +170,7 @@ def create_lstm(query, user_token):
                 and sale.product_type_id = '{1}'
                 and sale.user_token = '{2}'
             group by 1 order by 1 desc limit {3}
-        '''.format(
-                query['point_id'],
-                query['product_type_id'],
-                user_token,
-                step_g +
-                3 if step_g >= before_range else before_range +
-                3)).fetchall()
+        '''.format(query['point_id'], query['product_type_id'], user_token, step_g + 3 if step_g >= before_range else before_range + 3)).fetchall()
         cont_res = utils.predict_step(
             steps,
             before_range=before_range + 1,
@@ -319,8 +305,7 @@ def make_prediction(query, user_token):
                              'listForvector': i.listForvector, 'realSpros': i.realSpros})
         print(full)
         return utils.main_prediction(full)
-    else:
-        return 409
+    return 409
 
 
 def create_user(name, email, password_hash, token, privilege_level=1):
@@ -350,7 +335,7 @@ def json_tag(tag):
         'capacity': tag.capacity,
         'fullness': tag.fullness,
         'sell_price': tag.sell_price,
-        'user_token':tag.user_token}
+        'user_token': tag.user_token}
 
 
 def create_tag(query, user_token):
@@ -368,8 +353,8 @@ def create_tag(query, user_token):
         fullness=query['fullness'],
         sell_price=query['sell_price'],
         user_token=user_token,
-        point_id = query['point_id'],
-        product_type_id = query['product_type_id'])
+        point_id=query['point_id'],
+        product_type_id=query['product_type_id'])
 
 
 def create_tag_with_id(query, tag_id, user_token):
@@ -389,8 +374,8 @@ def create_tag_with_id(query, tag_id, user_token):
         fullness=query['fullness'],
         sell_price=query['sell_price'],
         user_token=user_token,
-        point_id = query['point_id'],
-        product_type_id = query['product_type_id'])
+        point_id=query['point_id'],
+        product_type_id=query['product_type_id'])
 
 
 def require_authentication(func):
@@ -431,11 +416,8 @@ class ListProductTypesApi(Resource):
             :return: list[ProductType]
         """
 
-        product_types = ProductType.query.filter(
-            ProductType.user_token == user.token).all()
-        return {
-            'product_types': [
-                json_type(product_type) for product_type in product_types]}, 200
+        product_types = ProductType.query.filter(ProductType.user_token == user.token).all()
+        return {'product_types': [json_type(product_type) for product_type in product_types]}, 200
 
     @staticmethod
     @require_authentication
@@ -766,6 +748,7 @@ class ListTagsApi(Resource):
         db.session.add(tag)
         db.session.commit()
         return {'tag': json_tag(tag)}, 201
+
     @staticmethod
     @require_authentication
     def put(user):
@@ -775,19 +758,18 @@ class ListTagsApi(Resource):
         """
         if not request.json:
             abort(400, "No data")
-        tag = Tag.query.filter(Tag.point_id == request.json['point_id'],Tag.product_type_id == request.json['product_type_id'],Tag.user_token == user.token).first()
+        tag = Tag.query.filter(Tag.point_id == request.json['point_id'], Tag.product_type_id == request.json['product_type_id'], Tag.user_token == user.token).first()
         print(tag)
         if tag is not None:
             tag_id = tag.id
             db.session.delete(tag)
             db.session.commit()
             print(tag_id)
-            tag = create_tag_with_id(request.json,tag_id,user.token)
+            tag = create_tag_with_id(request.json, tag_id, user.token)
             db.session.add(tag)
             db.session.commit()
             return {'tag': json_tag(tag)}, 201
-        else:
-            return 404
+        return 404
 
 
 class TagsApi(Resource):
@@ -888,8 +870,8 @@ class AuthenticationApi(Resource):
                 'Name must be greater than 5 chars and less than 12 chars')
 
         if db.session.query(
-            User.query.filter(
-                User.name == name).exists()).scalar():
+                User.query.filter(
+                    User.name == name).exists()).scalar():
             errors.append('Name is already taken')
 
         if not Utils.is_email_valid(email):
@@ -950,9 +932,11 @@ class IntegrateUserApi(Resource):
 
 class IntegrateApi(Resource):
     """ Class that imports data from moysklad.ru """
+
     @staticmethod
     @require_authentication
     def delete(user):
+        """ Function that deletes all user data importet from moysklad """
         for sale in Sale.query.filter(Sale.user_token == user.token).all():
             db.session.delete(sale)
         for tag in Tag.query.filter(Tag.user_token == user.token).all():
@@ -982,7 +966,7 @@ class IntegrateApi(Resource):
             name = item['name']
             price = item['salePrices'][0]['value']
             product_type = ProductType.query.filter(
-                ProductType.id == product_type_id,ProductType.user_token==user.token).first() 
+                ProductType.id == product_type_id, ProductType.user_token == user.token).first()
             if product_type is None:
                 product_type = ProductType(
                     id=product_type_id,
@@ -996,10 +980,8 @@ class IntegrateApi(Resource):
                 product_type.price = price
                 # product_type.id = product_type_id
         db.session.commit()
-        
-        
+
         #     print(i.id)
-        products_count = len(response.json()['rows'])
         response = requests.get(
             'https://online.moysklad.ru/api/remap/1.1/entity/store?limit=100',
             auth=requests.auth.HTTPBasicAuth(
@@ -1012,21 +994,25 @@ class IntegrateApi(Resource):
                 Point.id == point_id,
                 Point.user_token == user.token).first()
             if point is None:
-                params = {'format':'json', 'apikey':'7c0fb672-2b23-4786-b6b4-588422f61f4c', 'geocode':address}
-                longitude, latitude = map(float, requests.get('https://geocode-maps.yandex.ru/1.x/', params=params).json()['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos'].split())
+                params = {'format': 'json', 'apikey': '7c0fb672-2b23-4786-b6b4-588422f61f4c', 'geocode': address}
+                longitude, latitude = map(float,
+                                          requests.get('https://geocode-maps.yandex.ru/1.x/', params=params).json()['response']['GeoObjectCollection']['featureMember'][
+                                              0]['GeoObject']['Point']['pos'].split())
                 point = Point(
                     id=point_id,
                     longitude=longitude,
                     latitude=latitude,
                     address=address,
-                    user_token=user.token#,
+                    user_token=user.token  # ,
                     # longitude=0,latitude=0
-                    )
+                )
                 db.session.add(point)
             else:
                 point.address = address
-                params = {'format':'json', 'apikey':'7c0fb672-2b23-4786-b6b4-588422f61f4c', 'geocode':address}
-                longitude, latitude = map(float, requests.get('https://geocode-maps.yandex.ru/1.x/', params=params).json()['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos'].split())
+                params = {'format': 'json', 'apikey': '7c0fb672-2b23-4786-b6b4-588422f61f4c', 'geocode': address}
+                longitude, latitude = map(float,
+                                          requests.get('https://geocode-maps.yandex.ru/1.x/', params=params).json()['response']['GeoObjectCollection']['featureMember'][
+                                              0]['GeoObject']['Point']['pos'].split())
                 point.longitude = longitude
                 point.latitude = latitude
                 db.session.add(point)
@@ -1046,7 +1032,7 @@ class IntegrateApi(Resource):
         point_ids = [0 for i in range(len(Point.query.filter(Point.user_token == user.token).all()))]
         final = [[0 for j in range(len(product_type_ids))] for i in range(len(point_ids))]
         for product_index, item in enumerate(response.json()['rows']):
-            for point_index,store_item in enumerate(item['stockByStore']):
+            for point_index, store_item in enumerate(item['stockByStore']):
                 point_id = store_item['meta']['href'].split('/')[-1]
                 product_type_id = item['meta']['href'].split(
                     '/')[-1].split('?')[0]
@@ -1071,48 +1057,48 @@ class IntegrateApi(Resource):
                         user_token=user.token)
                     db.session.add(tag)
                     final[point_index][product_index] = {
-                            'product_type_id': product_type_id,
-                            'name': product_type.name,
-                            'price': product_type.price,
-                            'seasonality': product_type.seasonality,
-                            'point_id': point_id,
-                            'sell_price': sell_price,
-                            'latitude':point.latitude,
-                            'longitude':point.longitude,
-                            'address': point.address, 'fullness': store_item['stock'],
-                            'capacity': 1000, 'minimum': 0,
-                            'lstm': LSTM.query.filter(LSTM.point_id == point_id, LSTM.product_type_id == product_type_id, LSTM.user_token == user.token).first() is not None
-                        }
+                        'product_type_id': product_type_id,
+                        'name': product_type.name,
+                        'price': product_type.price,
+                        'seasonality': product_type.seasonality,
+                        'point_id': point_id,
+                        'sell_price': sell_price,
+                        'latitude': point.latitude,
+                        'longitude': point.longitude,
+                        'address': point.address, 'fullness': store_item['stock'],
+                        'capacity': 1000, 'minimum': 0,
+                        'lstm': LSTM.query.filter(LSTM.point_id == point_id, LSTM.product_type_id == product_type_id, LSTM.user_token == user.token).first() is not None
+                    }
                 else:
                     tag.sell_price = sell_price
                     tag.fullness = store_item['stock']
                     final[point_index][product_index] = {
-                            'product_type_id': product_type_id,
-                            'name': product_type.name,
-                            'price': product_type.price,
-                            'seasonality': product_type.seasonality,
-                            'sell_price': sell_price,
-                            'fullness': store_item['stock'],
-                            'capacity': tag.capacity, 'minimum': tag.minimum,
-                            'lstm': LSTM.query.filter(LSTM.point_id == point_id, LSTM.product_type_id == product_type_id, LSTM.user_token == user.token).first() is not None,
-                            'latitude':point.latitude,
-                            'longitude':point.longitude,
-                            'address': point.address,
-                            'point_id': point_id
+                        'product_type_id': product_type_id,
+                        'name': product_type.name,
+                        'price': product_type.price,
+                        'seasonality': product_type.seasonality,
+                        'sell_price': sell_price,
+                        'fullness': store_item['stock'],
+                        'capacity': tag.capacity, 'minimum': tag.minimum,
+                        'lstm': LSTM.query.filter(LSTM.point_id == point_id, LSTM.product_type_id == product_type_id, LSTM.user_token == user.token).first() is not None,
+                        'latitude': point.latitude,
+                        'longitude': point.longitude,
+                        'address': point.address,
+                        'point_id': point_id
                     }
         db.session.commit()
         final_result = []
         for point_index in range(len(final)):
             final_result.append({
-                'point_id':final[point_index][0]['point_id'],
-                'address':final[point_index][0]['address'],
-                'latitude':final[point_index][0]['latitude'],
-                'longitude':final[point_index][0]['longitude'],
-                'product_types':[]
+                'point_id': final[point_index][0]['point_id'],
+                'address': final[point_index][0]['address'],
+                'latitude': final[point_index][0]['latitude'],
+                'longitude': final[point_index][0]['longitude'],
+                'product_types': []
             })
             for type_index in range(len(product_type_ids)):
                 final_result[point_index]['product_types'].append(final[point_index][type_index])
-            print(final_result[-1],'\n','shop')
+            print(final_result[-1], '\n', 'shop')
 
         shops_list = set()
         response = requests.get(
