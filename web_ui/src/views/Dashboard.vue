@@ -1,5 +1,13 @@
 <template>
 	<div class="home">
+		<v-snackbar v-model="snackbar" bottom :color="'error'" :timeout="5000">
+			Please check you product data!
+			<br />
+			Your Before range field should be positive
+			<v-btn dark text @click="snackbar = false">
+				Close
+			</v-btn>
+		</v-snackbar>
 		<v-dialog v-model="edit_dialog">
 			<v-card>
 				<v-card-title>
@@ -25,7 +33,7 @@
 								<v-checkbox v-model="editedItem.lstm" disabled label="Has lstm"></v-checkbox>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.fullness" hide-details single-line type="number" label="Fullness"></v-text-field>
+								<v-text-field v-model="editedItem.fullness" disabled hide-details single-line type="number" label="Fullness"></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
 								<v-text-field v-model="editedItem.capacity" hide-details single-line type="number" label="Capacity"></v-text-field>
@@ -170,6 +178,7 @@
 				store_data_loaded: false,
 				table_pagination: {},
 				expanded_table: [],
+				snackbar: false,
 				search_prediction_product_id: "",
 				expanded: [],
 				edit_dialog: false,
@@ -302,19 +311,23 @@
 			},
 
 			send4training(product) {
-				axios
-					.post("http://127.0.0.1:5000/api/lstms", {
-						Authorization: localStorage.getItem("token") || "",
-						before_range: product.before_range,
-						point_id: product.point_id,
-						product_type_id: product.product_type_id,
-					})
-					.then(function(response) {
-						console.log(response);
-					})
-					.catch(function(error) {
-						console.log(error);
-					});
+				if (product.lstm === true || (!product.lstm && product.before_range > 0)) {
+					axios
+						.post("http://127.0.0.1:5000/api/lstms", {
+							Authorization: localStorage.getItem("token") || "",
+							before_range: product.before_range,
+							point_id: product.point_id,
+							product_type_id: product.product_type_id,
+						})
+						.then(function(response) {
+							console.log(response);
+						})
+						.catch(function(error) {
+							console.log(error);
+						});
+				} else {
+					this.snackbar = true;
+				}
 			},
 
 			getPrediction(product) {
@@ -342,6 +355,16 @@
 						fullness: product.fullness,
 						point_id: store.point_id,
 						product_type_id: product.product_type_id,
+					})
+					.then((response) => {
+						this.prediction.push(response.data);
+					});
+				axios
+					.put("http://127.0.0.1:5000/api/product_types/" + product.product_type_id.toString(), {
+						Authorization: localStorage.getItem("token") || "",
+						seasonality: product.seasonality,
+						price: product.price,
+						name: product.name,
 					})
 					.then((response) => {
 						this.prediction.push(response.data);
