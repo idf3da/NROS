@@ -150,7 +150,7 @@
 						</v-data-table>
 					</v-card>
 				</v-col>
-				<v-col v-if="store_data_loaded">
+				<v-col v-if="prediction_loaded">
 					<v-card style="width: 100%" class="pa-0" outlined tile>
 						<v-card-title class="mt-n2 mb-1"
 							>Predictions for:
@@ -211,6 +211,7 @@
 				store_data_loaded: false,
 				table_pagination: {},
 				prediction_error: false,
+				prediction_loaded: false,
 				expanded_table: [],
 				snackbar: false,
 				training_error: false,
@@ -276,7 +277,7 @@
 				store_data: [],
 				product_items: [],
 				property_items: [],
-				prediction: [[], []],
+				prediction: [],
 			};
 		},
 		created() {
@@ -385,14 +386,16 @@
 						product_type_id: product.id,
 					})
 					.then((response) => {
+						console.log(response.data)
 						this.prediction.push(response.data);
+						console.log(this.prediction)
 					})
 					.catch((error) => {
 						if (error.response.status == 409) {
 							this.prediction_error = true;
 						}
 					});
-
+				this.prediction_loaded = true;
 				console.log(product.id, product);
 			},
 
@@ -411,9 +414,6 @@
 						point_id: store.point_id,
 						product_type_id: product.product_type_id,
 					})
-					.then((response) => {
-						this.prediction.push(response.data);
-					});
 				axios
 					.put("http://127.0.0.1:5000/api/product_types/" + product.product_type_id.toString(), {
 						Authorization: localStorage.getItem("token") || "",
@@ -421,9 +421,6 @@
 						price: product.price,
 						name: product.name,
 					})
-					.then((response) => {
-						this.prediction.push(response.data);
-					});
 			},
 		},
 	};
