@@ -31,6 +31,8 @@ class Point(db.Model):  # pylint: disable=too-few-public-methods
     """ Class that contains RetailStore or Storage """
     id = db.Column(db.String, primary_key=True)
     address = db.Column(db.String(100))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
     tags = db.relationship('Tag', backref='point', lazy='dynamic')
     lstms = db.relationship('LSTM', backref='point', lazy='dynamic')
     sales = db.relationship('Sale', backref='shop', lazy='dynamic')
