@@ -36,6 +36,7 @@ idna==2.9
 itsdangerous==1.1.0
 Jinja2==2.11.1
 joblib==0.15.1
+jsonpath==0.82
 Keras==2.3.1
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.2
