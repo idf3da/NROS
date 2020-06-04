@@ -474,6 +474,8 @@
 							let error = data.error;
 
 							if (success) {
+								this.$router.push("/dashboard");
+
 								this.name = "";
 								this.email = "";
 								this.password = "";
