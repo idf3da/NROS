@@ -154,7 +154,7 @@
 					<v-card style="width: 100%" class="pa-0" outlined tile>
 						<v-card-title class="mt-n2 mb-1"
 							>Predictions for:
-							<!-- {{ prediction[0]["target_id"] }} -->
+							    {{ prediction[0]["target_id"] }}
 							<v-spacer></v-spacer>
 						</v-card-title>
 						<v-data-table class="mt-n3" :height="400" :headers="prediction_headers" :items="prediction[0]['predictions']" iteam-key="product_type_id"> </v-data-table>
