@@ -21,10 +21,9 @@
 
 <script>
     import axios from 'axios'
-    import API_URL from '../constants'
 
     export default {
-        data: function() {
+        data: function () {
             return {
                 search: '',
                 headers: [
@@ -40,9 +39,9 @@
             }
         },
         mounted() {
-            axios.get(API_URL + '/api/product_items').then(response => {
+            axios.get('product_items').then(response => {
                 this.items = response.data.product_items;
-              });
+            });
         }
     }
 </script>

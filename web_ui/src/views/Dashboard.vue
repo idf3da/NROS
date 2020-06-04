@@ -282,7 +282,7 @@
 		},
 		created() {
 			axios
-				.get("http://127.0.0.1:5000/api/product_types", {
+				.get("product_types", {
 					Authorization: localStorage.getItem("token") || "",
 				})
 				.then((response) => {
@@ -290,7 +290,7 @@
 					this.product_items_loaded = true;
 				});
 			axios
-				.post("http://127.0.0.1:5000/api/user/integrate", {
+				.post("user/integrate", {
 					Authorization: localStorage.getItem("token") || "",
 				})
 				.then((response) => {
@@ -348,7 +348,7 @@
 			send4training(product) {
 				if ((product.lstm === true || (!product.lstm && product.before_range > 0)) && product.before_range > 0) {
 					axios
-						.post("http://127.0.0.1:5000/api/lstms", {
+						.post("lstms", {
 							Authorization: localStorage.getItem("token") || "",
 							before_range: product.before_range,
 							point_id: product.point_id,
@@ -370,7 +370,7 @@
 
 			trainAll(product) {
 				axios
-					.post("http://127.0.0.1:5000/api/train_all", {
+					.post("train_all", {
 						Authorization: localStorage.getItem("token") || "",
 						product_type_id: product.id,
 					})
@@ -381,7 +381,7 @@
 
 			getPrediction(product) {
 				axios
-					.post("http://127.0.0.1:5000/api/predict", {
+					.post("predict", {
 						Authorization: localStorage.getItem("token") || "",
 						product_type_id: product.id,
 					})
@@ -405,7 +405,7 @@
 				console.log(product.minimum, product.capacity, product.sell_price, product.fullness, store.point_id, product.product_type_id);
 				console.log(localStorage.getItem("token"));
 				axios
-					.put("http://127.0.0.1:5000/api/tags", {
+					.put("tags", {
 						Authorization: localStorage.getItem("token") || "",
 						minimum: product.minimum,
 						capacity: product.capacity,
@@ -415,7 +415,7 @@
 						product_type_id: product.product_type_id,
 					})
 				axios
-					.put("http://127.0.0.1:5000/api/product_types/" + product.product_type_id.toString(), {
+					.put("product_types/" + product.product_type_id.toString(), {
 						Authorization: localStorage.getItem("token") || "",
 						seasonality: product.seasonality,
 						price: product.price,

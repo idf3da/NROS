@@ -66,7 +66,7 @@ const actions = {
     // eslint-disable-next-line no-unused-vars
     [AUTH_SIGN_UP_REQUEST]: ({commit, dispatch}, user) => {
         return new Promise((resolve, reject) => {
-            axios.post('http://127.0.0.1:5000/api/authentication', {
+            axios.post('authentication', {
                 "name": user.name,
                 "email": user.email,
                 "password": user.password,

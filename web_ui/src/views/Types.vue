@@ -39,7 +39,7 @@
             }
         },
         mounted() {
-            axios.get('api/product_types').then(response => {
+            axios.get('product_types').then(response => {
                 this.types = response.data.product_types;
               });
         }
