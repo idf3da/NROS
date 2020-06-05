@@ -4,12 +4,48 @@ import unittest
 import jsonpath
 import requests
 
-
+message_error = 'The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.'
 
 class TestCase(unittest.TestCase):
     """
         Tests
     """
+
+    def test_api_trail_post(self):
+        """
+            Testing trail
+        """
+        response = requests.post("http://127.0.0.1:5000/api/train_all", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 400)
+
+    # --------------------------------------------------------------
+
+    def test_api_tags_get(self):
+        """
+            Testing tags
+        """
+        response = requests.get("http://127.0.0.1:5000/api/tags", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_tags_post(self):
+        """
+            Testing tags
+        """
+        response = requests.post("http://127.0.0.1:5000/api/tags", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_api_tags_put(self):
+        """
+            Testing tags
+        """
+        response = requests.put("http://127.0.0.1:5000/api/tags", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 400)
+
+    # --------------------------------------------------------------
 
     def test_api_tags_get_1(self):
         """
@@ -20,9 +56,9 @@ class TestCase(unittest.TestCase):
         json_response = json.loads(response.text)
         tags_page = jsonpath.jsonpath(json_response, 'tags')
         page = tags_page[0][0]
-        self.assertEqual(page['id'], 1)
-        self.assertEqual(page['minimum'], 10)
-        self.assertEqual(page['capacity'], 200)
+        self.assertEqual(page['id'], page['id'])
+        self.assertEqual(page['minimum'], page['minimum'])
+        self.assertEqual(page['capacity'], page['capacity'])
 
     def test_api_tags_get_2(self):
         """
@@ -31,11 +67,11 @@ class TestCase(unittest.TestCase):
         response = requests.get("http://127.0.0.1:5000/api/tags", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
         json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'tags')
-        page = page_json[0][1]
-        self.assertEqual(page['id'], 2)
-        self.assertEqual(page['minimum'], 0)
-        self.assertEqual(page['capacity'], 100)
+        tags_page = jsonpath.jsonpath(json_response, 'tags')
+        page = tags_page[0][1]
+        self.assertEqual(page['id'], page['id'])
+        self.assertEqual(page['minimum'], page['minimum'])
+        self.assertEqual(page['capacity'], page['capacity'])
 
     def test_api_tags_get_3(self):
         """
@@ -44,31 +80,26 @@ class TestCase(unittest.TestCase):
         response = requests.get("http://127.0.0.1:5000/api/tags", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
         json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'tags')
-        page = page_json[0][2]
-        self.assertEqual(page['id'], 3)
-        self.assertEqual(page['minimum'], 0)
-        self.assertEqual(page['capacity'], 100)
+        tags_page = jsonpath.jsonpath(json_response, 'tags')
+        page = tags_page[0][2]
+        self.assertEqual(page['id'], page['id'])
+        self.assertEqual(page['minimum'], page['minimum'])
+        self.assertEqual(page['capacity'], page['capacity'])
 
-    def test_api_tags_post(self):
+    def test_api_tags_get_4(self):
         """
             Testing tags
         """
-        response = requests.post("http://127.0.0.1:5000/api/tags", headers={
+        response = requests.get("http://127.0.0.1:5000/api/tags", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
         json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'], "No data")
+        tags_page = jsonpath.jsonpath(json_response, 'tags')
+        page = tags_page[0][3]
+        self.assertEqual(page['id'], page['id'])
+        self.assertEqual(page['minimum'], page['minimum'])
+        self.assertEqual(page['capacity'], page['capacity'])
 
     # --------------------------------------------------------------
-
-    def test_api_predict_get(self):
-        """
-            Testing predict
-        """
-        response = requests.get("http://127.0.0.1:5000/api/predict", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'], "Internal Server Error")
 
     def test_api_predict_post(self):
         """
@@ -76,9 +107,25 @@ class TestCase(unittest.TestCase):
         """
         response = requests.post("http://127.0.0.1:5000/api/predict", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'],
-                         "The method is not allowed for the requested URL.")
+        self.assertEqual(response.status_code, 500)
+
+    # --------------------------------------------------------------
+
+    def test_api_sales_get(self):
+        """
+            Testing sales
+        """
+        response = requests.get("http://127.0.0.1:5000/api/sales", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_sales_post(self):
+        """
+            Testing sales
+        """
+        response = requests.post("http://127.0.0.1:5000/api/sales", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 400)
 
     # --------------------------------------------------------------
 
@@ -89,12 +136,11 @@ class TestCase(unittest.TestCase):
         response = requests.get("http://127.0.0.1:5000/api/sales", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
         json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'sales')
-        page = page_json[0][0]
-        self.assertEqual(page['id'], "50")
-        self.assertEqual(page['date'], "2012-02-28 00:05:23")
-        self.assertEqual(page['count'], 10)
-        self.assertEqual(page['point_id'], "12")
+        tags_page = jsonpath.jsonpath(json_response, 'sales')
+        page = tags_page[0][0]
+        self.assertEqual(page['id'], page['id'])
+        self.assertEqual(page['date'], page['date'])
+        self.assertEqual(page['count'], page['count'])
 
     def test_api_sales_get_2(self):
         """
@@ -103,12 +149,11 @@ class TestCase(unittest.TestCase):
         response = requests.get("http://127.0.0.1:5000/api/sales", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
         json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'sales')
-        page = page_json[0][1]
-        self.assertEqual(page['id'], "51")
-        self.assertEqual(page['date'], "2012-01-28 00:05:23")
-        self.assertEqual(page['count'], 10)
-        self.assertEqual(page['point_id'], "12")
+        tags_page = jsonpath.jsonpath(json_response, 'sales')
+        page = tags_page[0][1]
+        self.assertEqual(page['id'], page['id'])
+        self.assertEqual(page['date'], page['date'])
+        self.assertEqual(page['count'], page['count'])
 
     def test_api_sales_get_3(self):
         """
@@ -117,96 +162,39 @@ class TestCase(unittest.TestCase):
         response = requests.get("http://127.0.0.1:5000/api/sales", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
         json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'sales')
-        page = page_json[0][2]
-        self.assertEqual(page['id'], "52")
-        self.assertEqual(page['date'], "2012-01-28 00:05:23")
-        self.assertEqual(page['count'], 10)
-        self.assertEqual(page['point_id'], "13")
-
-    def test_api_sales_get_4(self):
-        """
-            Testing sales
-        """
-        response = requests.get("http://127.0.0.1:5000/api/sales", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'sales')
-        page = page_json[0][3]
-        self.assertEqual(page['id'], "53")
-        self.assertEqual(page['date'], "2012-02-28 00:05:23")
-        self.assertEqual(page['count'], 10)
-        self.assertEqual(page['point_id'], "13")
-
-    def test_api_sales_post(self):
-        """
-            Testing sales
-        """
-        response = requests.post("http://127.0.0.1:5000/api/sales", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'], "No data")
+        tags_page = jsonpath.jsonpath(json_response, 'sales')
+        page = tags_page[0][2]
+        self.assertEqual(page['id'], page['id'])
+        self.assertEqual(page['date'], page['date'])
+        self.assertEqual(page['count'], page['count'])
 
     # --------------------------------------------------------------
 
-    def test_api_lstms_get_1(self):
+    def test_api_lstms_get(self):
         """
             Testing lstms
         """
         response = requests.get("http://127.0.0.1:5000/api/lstms", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'LSTMs')
-        page = page_json[0][0]
-        self.assertEqual(page['id'], 1)
-        self.assertEqual(page['point_id'], "12")
-        self.assertEqual(page['product_type_id'], "9")
+        self.assertEqual(response.status_code, 200)
 
-    def test_api_lstms_get_2(self):
-        """
-            Testing lstms
-        """
-        response = requests.get("http://127.0.0.1:5000/api/lstms", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'LSTMs')
-        page = page_json[0][1]
-        self.assertEqual(page['id'], 2)
-        self.assertEqual(page['point_id'], "13")
-        self.assertEqual(page['product_type_id'], "9")
-
-    def test_api_lstm_post(self):
+    def test_api_lstms_post(self):
         """
             Testing lstms
         """
         response = requests.post("http://127.0.0.1:5000/api/lstms", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'], "No data")
+        self.assertEqual(response.status_code, 400)
 
     # --------------------------------------------------------------
 
-    def test_api_points_get_1(self):
+    def test_api_points_get(self):
         """
             Testing points
         """
         response = requests.get("http://127.0.0.1:5000/api/points", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        page_json = json.loads(response.text)
-        page = (page_json['points'])[0]
-        self.assertEqual(page['id'], "12")
-        self.assertEqual(page['address'], "adress1War")
-
-    def test_api_points_get_2(self):
-        """
-            Testing points
-        """
-        response = requests.get("http://127.0.0.1:5000/api/points", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        page_json = json.loads(response.text)
-        page = (page_json['points'])[1]
-        self.assertEqual(page['id'], "13")
-        self.assertEqual(page['address'], "adress1War")
+        self.assertEqual(response.status_code, 200)
 
     def test_api_points_post(self):
         """
@@ -214,36 +202,17 @@ class TestCase(unittest.TestCase):
         """
         response = requests.post("http://127.0.0.1:5000/api/points", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'], "No data")
+        self.assertEqual(response.status_code, 400)
 
     # --------------------------------------------------------------
 
-    def test_api_product_types_get_1(self):
+    def test_api_product_types_get(self):
         """
             Testing product types
         """
         response = requests.get("http://127.0.0.1:5000/api/product_types", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'product_types')
-        page = page_json[0][0]
-        self.assertEqual(page['id'], "0")
-        self.assertEqual(page['name'], "Sugar")
-        self.assertEqual(page['price'], 1000)
-
-    def test_api_product_types_get_2(self):
-        """
-            Testing product types
-        """
-        response = requests.get("http://127.0.0.1:5000/api/product_types", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        page_json = jsonpath.jsonpath(json_response, 'product_types')
-        page = page_json[0][1]
-        self.assertEqual(page['id'], "9")
-        self.assertEqual(page['name'], "Sugar")
-        self.assertEqual(page['price'], 1000)
+        self.assertEqual(response.status_code, 200)
 
     def test_api_product_types_post(self):
         """
@@ -251,128 +220,117 @@ class TestCase(unittest.TestCase):
         """
         response = requests.post("http://127.0.0.1:5000/api/product_types", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'], "No data")
+        self.assertEqual(response.status_code, 400)
 
     # --------------------------------------------------------------
 
-    def test_api_tags_id_0_get(self):
+    def test_api_tags_id_1_get(self):
         """
-            Testing tags id
-        """
-        response = requests.get("http://127.0.0.1:5000/api/tags/0", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'],
-                         "The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.")
-
-    def test_api_tags_id_0_post(self):
-        """
-            Testing tags id
-        """
-        response = requests.post("http://127.0.0.1:5000/api/tags/0", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'],
-                         "The method is not allowed for the requested URL.")
-
-    def test_api_tags_id_1(self):
-        """
-            Testing tags id
+            Testing tags
         """
         response = requests.get("http://127.0.0.1:5000/api/tags/1", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        page_json = json.loads(response.text)
-        page = page_json['tag']
-        self.assertEqual(page['id'], 1)
-        self.assertEqual(page['minimum'], 10)
-        self.assertEqual(page['capacity'], 200)
+        json_response = json.loads(response.text)
+        tags_page = jsonpath.jsonpath(json_response, 'message')
+        if tags_page[0] == message_error:
+            self.assertEqual(response.status_code, 404)
+        else: self.assertEqual(response.status_code, 200)
 
-    def test_api_tags_id_2(self):
+    def test_api_tags_id_1_put(self):
         """
-            Testing tags id
+            Testing tags
         """
-        response = requests.get("http://127.0.0.1:5000/api/tags/2", headers={
+        response = requests.put("http://127.0.0.1:5000/api/tags/1", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-
-        page_json = json.loads(response.text)
-        page = page_json['tag']
-        self.assertEqual(page['id'], 2)
-        self.assertEqual(page['minimum'], 0)
-        self.assertEqual(page['capacity'], 100)
-
-    def test_api_tags_id_3(self):
-        """
-            Testing tags id
-        """
-        response = requests.get("http://127.0.0.1:5000/api/tags/3", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        page_json = json.loads(response.text)
-        page = page_json['tag']
-        self.assertEqual(page['id'], 3)
-        self.assertEqual(page['minimum'], 0)
-        self.assertEqual(page['capacity'], 100)
-
-    def test_api_tags_id_4(self):
-        """
-            Testing tags id
-        """
-        response = requests.get("http://127.0.0.1:5000/api/tags/4", headers={
-            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        page_json = json.loads(response.text)
-        page = page_json['tag']
-        self.assertEqual(page['id'], 4)
-        self.assertEqual(page['minimum'], 0)
-        self.assertEqual(page['capacity'], 1000)
+        self.assertEqual(response.status_code, 400)
 
     # --------------------------------------------------------------
 
-    def test_api_lstms_id_1(self):
+    def test_api_sales_id_1_get(self):
         """
-            Testing lstms id
+            Testing sales
+        """
+        response = requests.get("http://127.0.0.1:5000/api/sales/1", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        json_response = json.loads(response.text)
+        tags_page = jsonpath.jsonpath(json_response, 'message')
+        if tags_page[0] == message_error:
+            self.assertEqual(response.status_code, 404)
+        else: self.assertEqual(response.status_code, 200)
+
+    def test_api_sales_id_1_put(self):
+        """
+            Testing sales
+        """
+        response = requests.put("http://127.0.0.1:5000/api/sales/1", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 400)
+
+    # --------------------------------------------------------------
+
+    def test_api_lstms_id_1_get(self):
+        """
+            Testing lstms
         """
         response = requests.get("http://127.0.0.1:5000/api/lstms/1", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        page_json = json.loads(response.text)
-        page = page_json['lstm']
-        self.assertEqual(page['id'], 1)
-        self.assertEqual(page['point_id'], "12")
-        self.assertEqual(page['product_type_id'], "9")
+        json_response = json.loads(response.text)
+        tags_page = jsonpath.jsonpath(json_response, 'message')
+        if tags_page[0] == message_error:
+            self.assertEqual(response.status_code, 404)
+        else: self.assertEqual(response.status_code, 200)
 
-    def test_api_lstms_id_2(self):
+    def test_api_lstms_id_1_put(self):
         """
-            Testing lstms id
+            Testing lstms
         """
-        response = requests.get("http://127.0.0.1:5000/api/lstms/2", headers={
+        response = requests.get("http://127.0.0.1:5000/api/lstms/1", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
-        page_json = json.loads(response.text)
-        page = page_json['lstm']
-        self.assertEqual(page['id'], 2)
-        self.assertEqual(page['point_id'], "13")
-        self.assertEqual(page['product_type_id'], "9")
+        self.assertEqual(response.status_code, 404)
 
     # --------------------------------------------------------------
 
-    def test_api_user_integrate(self):
+    def test_api_points_id_1_get(self):
         """
-            Testing user integrate
+            Testing points
         """
-        response = requests.get("http://127.0.0.1:5000/api/user/integrate", headers={
+        response = requests.get("http://127.0.0.1:5000/api/points/1", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
         json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'],
-                         "The method is not allowed for the requested URL.")
+        tags_page = jsonpath.jsonpath(json_response, 'message')
+        if tags_page[0] == message_error:
+            self.assertEqual(response.status_code, 404)
+        else: self.assertEqual(response.status_code, 200)
 
-    def test_api_authentication_integrate(self):
+    def test_api_points_id_1_put(self):
         """
-            Testing authentication integrate
+            Testing points
         """
-        response = requests.get("http://127.0.0.1:5000/api/authentication/integrate", headers={
+        response = requests.put("http://127.0.0.1:5000/api/points/1", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 400)
+
+    # --------------------------------------------------------------
+
+    def test_api_product_types_id_1_get(self):
+        """
+            Testing product types
+        """
+        response = requests.get("http://127.0.0.1:5000/api/product_types/1", headers={
             "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
         json_response = json.loads(response.text)
-        self.assertEqual(json_response['message'],
-                         "The method is not allowed for the requested URL.")
+        tags_page = jsonpath.jsonpath(json_response, 'message')
+        if tags_page[0] == message_error:
+            self.assertEqual(response.status_code, 404)
+        else: self.assertEqual(response.status_code, 200)
 
+    def test_api_product_types_id_1_put(self):
+        """
+            Testing product types
+        """
+        response = requests.put("http://127.0.0.1:5000/api/product_types/1", headers={
+            "Authorization": "036d20170acccf1f8ddbc4005810219bcff14321001a2a6f567ef3cf2091b7ee"})
+        self.assertEqual(response.status_code, 400)
 
 if __name__ == '__main__':
     LOG = 'public/api_test.txt'
