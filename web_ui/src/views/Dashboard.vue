@@ -109,11 +109,12 @@
 					<v-card outlined tile>
 						<v-card-text class="px-0 pa-0">
 							<yandex-map disabled :zoom="13" :coords="[55.753, 37.62]" :controls="[]" style="height: 300px;" @map-was-initialized="initHandler">
-								<ymap-marker v-bind:key="item" :coords="item" :icon="storeIcon" v-for="item in store_coordinates"></ymap-marker>
+								<ymap-marker v-bind:key="[item[0], item[1]]" :coords="[item[0], item[1]]" :icon="storeIcon" :hint-content="item[2]" v-for="item in store_coordinates"></ymap-marker>
 							</yandex-map>
 						</v-card-text>
 					</v-card>
 				</v-col>
+
 				<v-responsive style="width: 100%"></v-responsive>
 				<v-col>
 					<v-card class="pa-0" outlined tile>
@@ -259,10 +260,10 @@
 					{ text: "Latitude", value: "latitude" },
 				],
 				prediction_headers: [
-					{ text: "Store quantity", value: "shop_c" },
-					{ text: "To store", value: "shop_id" },
 					{ text: "From warehouse", value: "war_id" },
 					{ text: "Warehouse quantity", value: "war_c" },
+					{ text: "To store", value: "shop_id" },
+					{ text: "Store quantity", value: "shop_c" },
 				],
 				sub_table_pagination: [],
 				table_selected: [],
@@ -300,7 +301,7 @@
 						for (let j = 0; j < this.store_data[i].product_types.length; j++) {
 							this.store_data[i].product_types[j]["shop_index"] = i;
 						}
-						let coord = [this.store_data[i].latitude, this.store_data[i].longitude];
+						let coord = [this.store_data[i].latitude, this.store_data[i].longitude, this.store_data[i].address];
 						this.store_coordinates.push(coord);
 					}
 				});
