@@ -154,7 +154,7 @@
 					<v-card style="width: 100%" class="pa-0" outlined tile>
 						<v-card-title class="mt-n2 mb-1"
 							>Predictions for:
-							    {{ prediction[0]["target_id"] }}
+							{{ prediction[0]["target_id"] }}
 							<v-spacer></v-spacer>
 						</v-card-title>
 						<v-data-table class="mt-n3" :height="400" :headers="prediction_headers" :items="prediction[0]['predictions']" iteam-key="product_type_id"> </v-data-table>
@@ -386,9 +386,9 @@
 						product_type_id: product.id,
 					})
 					.then((response) => {
-						console.log(response.data)
+						console.log(response.data);
 						this.prediction.push(response.data);
-						console.log(this.prediction)
+						console.log(this.prediction);
 					})
 					.catch((error) => {
 						if (error.response.status == 409) {
@@ -404,23 +404,21 @@
 				console.log("Index:", product["shop_index"], store, store["point_id"]);
 				console.log(product.minimum, product.capacity, product.sell_price, product.fullness, store.point_id, product.product_type_id);
 				console.log(localStorage.getItem("token"));
-				axios
-					.put("tags", {
-						Authorization: localStorage.getItem("token") || "",
-						minimum: product.minimum,
-						capacity: product.capacity,
-						sell_price: product.sell_price,
-						fullness: product.fullness,
-						point_id: store.point_id,
-						product_type_id: product.product_type_id,
-					})
-				axios
-					.put("product_types/" + product.product_type_id.toString(), {
-						Authorization: localStorage.getItem("token") || "",
-						seasonality: product.seasonality,
-						price: product.price,
-						name: product.name,
-					})
+				axios.put("tags", {
+					Authorization: localStorage.getItem("token") || "",
+					minimum: product.minimum,
+					capacity: product.capacity,
+					sell_price: product.sell_price,
+					fullness: product.fullness,
+					point_id: store.point_id,
+					product_type_id: product.product_type_id,
+				});
+				axios.put("product_types/" + product.product_type_id.toString(), {
+					Authorization: localStorage.getItem("token") || "",
+					seasonality: product.seasonality,
+					price: product.price,
+					name: product.name,
+				});
 			},
 		},
 	};
