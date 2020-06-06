@@ -383,8 +383,8 @@ def json_prediction(prediction):
     return {
         'f1': prediction[0][0],
         'f2': prediction[0][1],
-        'war_c': prediction[1][0],
-        'shop_c': prediction[1][1],
+        'war_c': int(prediction[1][0]),
+        'shop_c': int(prediction[1][1]),
         'war_id': Point.query.filter(Point.id == prediction[2][0]).first().address,
         'shop_id': Point.query.filter(Point.id == prediction[2][1]).first().address,
     }
