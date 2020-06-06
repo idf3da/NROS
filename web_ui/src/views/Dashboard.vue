@@ -46,28 +46,28 @@
 								<v-text-field v-model="editedItem.name" disabled label="Name"></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.product_type_id" lable="Product type ID" disabled hide-details single-line label="ID"></v-text-field>
+								<v-text-field v-model="editedItem.product_type_id" lable="Product type ID" disabled hide-details label="ID"></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.sell_price" hide-details single-line label="Price" disabled></v-text-field>
+								<v-text-field v-model="editedItem.sell_price" hide-details label="Price" disabled></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.seasonality" hide-details single-line type="number" label="Season day"></v-text-field>
+								<v-text-field v-model="editedItem.seasonality" hide-details type="number" label="Season day"></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
 								<v-checkbox v-model="editedItem.lstm" disabled label="Has lstm"></v-checkbox>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.fullness" disabled hide-details single-line type="number" label="Fullness"></v-text-field>
+								<v-text-field v-model="editedItem.fullness" disabled hide-details type="number" label="Fullness"></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.capacity" hide-details single-line type="number" label="Capacity"></v-text-field>
+								<v-text-field v-model="editedItem.capacity" hide-details type="number" label="Capacity"></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.minimum" hide-details single-line type="number" label="Minumum"></v-text-field>
+								<v-text-field v-model="editedItem.minimum" hide-details type="number" label="Minumum"></v-text-field>
 							</v-col>
 							<v-col cols="12" sm="6" md="4">
-								<v-text-field v-model="editedItem.before_range" hide-details single-line type="number" label="Before range (recomended: 3~10)"></v-text-field>
+								<v-text-field v-model="editedItem.before_range" hide-details type="number" label="Before range (recomended: 3~10)"></v-text-field>
 							</v-col>
 						</v-row>
 					</v-container>
