@@ -262,8 +262,8 @@
 				prediction_headers: [
 					{ text: "From warehouse", value: "war_id" },
 					{ text: "Warehouse quantity", value: "war_c" },
-					{ text: "To store", value: "shop_id" },
-					{ text: "Store quantity", value: "shop_c" },
+					{ text: "To retail point", value: "shop_id" },
+					{ text: "Retail point quantity", value: "shop_c" },
 				],
 				sub_table_pagination: [],
 				table_selected: [],
