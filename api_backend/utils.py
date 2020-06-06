@@ -13,6 +13,9 @@ import pickle
 
 
 def trainModelsAndPredict(inData, before_range, model, slen=0):
+    """
+        function to train models and predict
+    """
     data = pd.DataFrame(columns={'Quantity', 'date'})
     for sale in inData:
         data = data.append(
@@ -34,6 +37,9 @@ def trainModelsAndPredict(inData, before_range, model, slen=0):
 
 
 class HoltWinters:
+    """
+        http://www.machinelearning.ru/wiki/index.php?title=Модель_Хольта-Уинтерса
+    """
     def __init__(
             self,
             series,
@@ -43,6 +49,9 @@ class HoltWinters:
             gamma,
             n_preds,
             scaling_factor=1.96):
+        """
+            This is a function
+        """
         self.series = series
         self.slen = slen
         self.alpha = alpha
@@ -52,6 +61,9 @@ class HoltWinters:
         self.scaling_factor = scaling_factor
 
     def initial_trend(self):
+        """
+            https://habr.com/ru/company/ods/blog/327242/
+        """
         sum = 0.0
         for i in range(self.slen):
             sum += float(self.series[i + self.slen] -
@@ -59,6 +71,9 @@ class HoltWinters:
         return sum / self.slen
 
     def initial_seasonal_components(self):
+        """
+            https://habr.com/ru/company/ods/blog/327242/
+        """
         seasonals = {}
         season_averages = []
 
@@ -77,6 +92,9 @@ class HoltWinters:
         return seasonals
 
     def triple_exponential_smoothing(self):
+        """
+           it traning for model
+        """
         self.result = []
         self.Smooth = []
         self.Season = []
@@ -142,7 +160,9 @@ class HoltWinters:
 
 
 def timeseriesCVscore(x, data, slen):
-
+    """
+            This is a function
+    """
     errors = []
 
     values = data.values.astype('float64')
@@ -170,6 +190,9 @@ def timeseriesCVscore(x, data, slen):
 
 
 def train(data, slen):
+    """
+        This is a function
+    """
     x = [0, 0, 0]
 
     opt = minimize(
@@ -182,6 +205,9 @@ def train(data, slen):
 
 
 def transform_data_train(resC, before_range):
+    """
+        This is a function
+    """
     resC = resC.reset_index()
     daily_data = resC.copy()
     resC.append = 0
@@ -200,6 +226,9 @@ def transform_data_train(resC, before_range):
 
 
 def scale_train(train_set, model):
+    """
+        This is a function
+    """
     if model is None:
         scaler = MinMaxScaler(feature_range=(-1, 1))
         scaler = scaler.fit(train_set)
@@ -210,6 +239,9 @@ def scale_train(train_set, model):
 
 
 def convertToTrain(train_set):
+    """
+        This is a function
+    """
     train_set = train_set.reshape(train_set.shape[0], train_set.shape[1])
     X_train, y_train = train_set[:, 1:], train_set[:, 0:1]
     X_train = X_train.reshape(X_train.shape[0], 1, X_train.shape[1])
@@ -217,6 +249,9 @@ def convertToTrain(train_set):
 
 
 def compile_LSTM_model(shape, params={}):
+    """
+        This is a function
+    """
     model = km.Sequential()
     if params != {}:
         pass
@@ -236,6 +271,9 @@ def trainLSTM(
         batch=32,
         verbose=0,
         before_range=5):
+    """
+        This is a function
+    """
     train_set = transform_data_train(data, before_range).values
     if do_scale:
         train_set, scaler = scale_train(train_set, modelI)
@@ -266,6 +304,9 @@ def predictWinters(
         slen,
         n_preds=1,
         scaling_factor=2.5):
+    """
+        This is a function
+    """
     model = HoltWinters(
         data,
         slen=slen,
@@ -279,27 +320,49 @@ def predictWinters(
 
 
 class Population:
-
+    """
+        This is a class
+    """
     def __init__(self):
+        """
+            This is a function
+        """
         self.population = []
         self.fronts = []
 
     def __len__(self):
+        """
+            This is a function
+        """
         return len(self.population)
 
     def __iter__(self):
+        """
+            This is a function
+        """
         return self.population.__iter__()
 
     def extend(self, new_individuals):
+        """
+            This is a function
+        """
         self.population.extend(new_individuals)
 
     def append(self, new_individual):
+        """
+            This is a function
+        """
         self.population.append(new_individual)
 
 
 class Individual(object):
-
+    """
+        This is a class
+    """
     def __init__(self):
+        """
+            This is a function
+        """
         self.rank = None
         self.crowding_distance = None
         self.domination_count = None
@@ -308,11 +371,17 @@ class Individual(object):
         self.objectives = None
 
     def __eq__(self, other):
+        """
+            This is a function
+        """
         if isinstance(self, other.__class__):
             return self.features == other.features
         return False
 
     def dominates(self, other_individual):
+        """
+            This is a function
+        """
         and_condition = True
         or_condition = False
         for first, second in zip(self.objectives, other_individual.objectives):
@@ -322,7 +391,9 @@ class Individual(object):
 
 
 class Problem:
-
+    """
+        This is a class
+    """
     def __init__(
             self,
             objectives,
@@ -331,6 +402,9 @@ class Problem:
             extend_vars=0,
             expand=True,
             same_range=False):
+        """
+            This is a function
+        """
         self.num_of_objectives = len(objectives)
         self.num_of_variables = num_of_variables
         self.objectives = objectives
@@ -344,6 +418,9 @@ class Problem:
         self.extend_vars = extend_vars
 
     def generate_individual(self, mag, sklad, ftrs):
+        """
+            This is a function
+        """
         individual = Individual()
         individual.features = ftrs
         individual.features.append(sklad)
@@ -351,7 +428,9 @@ class Problem:
         return individual
 
     def calculate_objectives(self, individual):
-
+        """
+            This is a function
+        """
         if self.expand:
             individual.objectives = [f(*individual.features)
                                      for f in self.objectives]
@@ -361,7 +440,9 @@ class Problem:
 
 
 class NSGA2Utils:
-
+    """
+        This is a class
+    """
     def __init__(
             self,
             problem,
@@ -372,7 +453,9 @@ class NSGA2Utils:
             tournament_prob=0.9,
             crossover_param=2,
             mutation_param=5):
-
+        """
+            This is a function
+        """
         self.problem = problem
         self.num_of_individuals = num_of_individuals
         self.num_of_tour_particips = num_of_tour_particips
@@ -384,6 +467,9 @@ class NSGA2Utils:
         self.crossover_probability = crossover_probability
 
     def create_initial_population(self):
+        """
+            This is a function
+        """
         population = Population()
         for _ in range(self.num_of_individuals):
             for i in range(len(self.problem.extend_vars)):
@@ -397,6 +483,9 @@ class NSGA2Utils:
         return population
 
     def fast_nondominated_sort(self, population):
+        """
+            This is a function
+        """
         population.fronts = [[]]
         for individual in population:
             individual.domination_count = 0
@@ -422,6 +511,9 @@ class NSGA2Utils:
             population.fronts.append(temp)
 
     def calculate_crowding_distance(self, front):
+        """
+            This is a function
+        """
         if len(front) > 0:
             solutions_num = len(front)
             for individual in front:
@@ -440,6 +532,9 @@ class NSGA2Utils:
                         front[i + 1].objectives[m] - front[i - 1].objectives[m]) / scale
 
     def crowding_operator(self, individual, other_individual):
+        """
+            This is a function
+        """
         if (individual.rank < other_individual.rank) or ((individual.rank == other_individual.rank) and (
                 individual.crowding_distance > other_individual.crowding_distance)):
             return 1
@@ -447,6 +542,9 @@ class NSGA2Utils:
             return -1
 
     def create_children(self, population):
+        """
+            This is a function
+        """
         children = []
         while len(children) < len(population):
             parent1 = self.__tournament(population)
@@ -464,7 +562,9 @@ class NSGA2Utils:
         return children
 
     def __crossover(self, individual1, individual2):
-
+        """
+            This is a function
+        """
         rnd1 = random.choice(self.problem.extend_vars)
         rnd2 = random.choice(self.problem.extend_vars)
         while rnd1 == rnd2:
@@ -490,13 +590,18 @@ class NSGA2Utils:
         return child1, child2
 
     def __get_beta(self):
+        """
+            This is a function
+        """
         u = random.random()
         if u <= 0.5:
             return (2 * u)**(1 / (self.crossover_param + 1))
         return (2 * (1 - u))**(-1 / (self.crossover_param + 1))
 
     def __mutate(self, child):
-
+        """
+            This is a function
+        """
         num_of_features = 2
         for gene in range(num_of_features):
             u, delta = self.__get_delta()
@@ -512,12 +617,18 @@ class NSGA2Utils:
                 child.features[gene] = self.problem.variables_range[gene][1]
 
     def __get_delta(self):
+        """
+            This is a function
+        """
         u = random.random()
         if u < 0.5:
             return u, (2 * u)**(1 / (self.mutation_param + 1)) - 1
         return u, 1 - (2 * (1 - u))**(1 / (self.mutation_param + 1))
 
     def __tournament(self, population):
+        """
+            This is a function
+        """
         participants = random.sample(
             population.population,
             self.num_of_tour_particips)
@@ -538,7 +649,9 @@ class NSGA2Utils:
 
 
 class Evolution:
-
+    """
+        This is a class
+    """
     def __init__(
             self,
             problem,
@@ -550,6 +663,9 @@ class Evolution:
             mutation_param=5,
             mutation_probability=0.5,
             crossover_probability=0.5):
+        """
+            This is a function
+        """
         self.utils = NSGA2Utils(
             problem,
             mutation_probability,
@@ -565,6 +681,9 @@ class Evolution:
         self.num_of_individuals = num_of_individuals
 
     def evolve(self):
+        """
+            This is a function
+        """
         self.population = self.utils.create_initial_population()
         self.utils.fast_nondominated_sort(self.population)
         for front in self.population.fronts:
@@ -599,6 +718,9 @@ class Evolution:
 
 
 def pretransorm_pred_data(resC, before_range):
+    """
+            This is a function
+    """
     data = pd.DataFrame(columns={'Quantity', 'date'})
     for i in resC:
         data = data.append({'Quantity': i[1], 'date': i[0]}, ignore_index=True)
@@ -619,6 +741,9 @@ def pretransorm_pred_data(resC, before_range):
 
 
 def pretransorm_test_data(stepGL, before_range):
+    """
+        This is a function
+    """
     data = pd.DataFrame(columns={'Quantity', 'date'})
     for sale in stepGL:
         data = data.append(
@@ -640,7 +765,9 @@ def pretransorm_test_data(stepGL, before_range):
 
 
 def convertToPred(pred_set):
-
+    """
+        This is a function
+    """
     pred_set = pred_set.reshape(pred_set.shape[0], pred_set.shape[1])
     X_test = pred_set[:]
     X_test = X_test.reshape(X_test.shape[0], 1, X_test.shape[1])
@@ -648,7 +775,9 @@ def convertToPred(pred_set):
 
 
 def convertToTest(test_set):
-
+    """
+        This is a function
+    """
     test_set = test_set.reshape(test_set.shape[0], test_set.shape[1])
     X_test = test_set[:, 1:]
     X_test = X_test.reshape(X_test.shape[0], 1, X_test.shape[1])
@@ -656,7 +785,9 @@ def convertToTest(test_set):
 
 
 def convertToTrain(train_set):
-
+    """
+        This is a function
+    """
     train_set = train_set.reshape(train_set.shape[0], train_set.shape[1])
     X_train, y_train = train_set[:, 1:], train_set[:, 0:1]
     X_train = X_train.reshape(X_train.shape[0], 1, X_train.shape[1])
@@ -664,7 +795,9 @@ def convertToTrain(train_set):
 
 
 def shift(resC, before_range):
-
+    """
+        This is a function
+    """
     resC.loc[len(resC)] = 0
     resC = resC.dropna()
 
@@ -677,6 +810,9 @@ def shift(resC, before_range):
 
 
 def predict_next(X_test, model, batch):
+    """
+        This is a function
+    """
     test_set = [[[X_test[0][0][1:]]]]
     diff = model.predict(test_set, batch_size=batch)
 
@@ -684,6 +820,9 @@ def predict_next(X_test, model, batch):
 
 
 def get_quantity(last_quantity, only_lag):
+    """
+        This is a function
+    """
     quantity = []
     for i in only_lag:
         last_quantity = last_quantity + i
@@ -699,6 +838,9 @@ def predict_next_day(
         do_scale=True,
         batch=32,
         before_range=5):
+    """
+        This is a function
+    """
     only_lag, last_quantity = pretransorm_pred_data(data, before_range)
     pred_set = only_lag.values
     if do_scale:
@@ -722,6 +864,9 @@ def predict_step(
         do_scale=True,
         batch=32,
         before_range=5):
+    """
+        This is a function
+    """
     last_quantity, step, stepQ = pretransorm_test_data(step, before_range)
     test_set = step.values
     if do_scale:
@@ -748,6 +893,9 @@ ALPHA = 0.5
 
 
 def funcE(X):
+    """
+        This is a function
+    """
     res = 0
     for i in X:
         res += (i / len(X))
@@ -755,6 +903,9 @@ def funcE(X):
 
 
 def CheckSendCount(sendCount, minOstat, capacity, pred, zapoln):
+    """
+        This is a function
+    """
     c1 = sendCount >= 0
     upperSendCount = minOstat + ALPHA * (capacity - minOstat) + pred - zapoln
     lowerSendCount = minOstat + pred - zapoln
@@ -763,6 +914,9 @@ def CheckSendCount(sendCount, minOstat, capacity, pred, zapoln):
 
 
 def CheckZakupkaCount(ZNSC, minOstat, capacity, predSum, zapoln):
+    """
+        This is a function
+    """
     c1 = ZNSC >= 0
     upperZNSC = minOstat + ALPHA * (capacity - minOstat) + predSum - zapoln
     lowerZNSC = minOstat + predSum - zapoln
@@ -771,6 +925,9 @@ def CheckZakupkaCount(ZNSC, minOstat, capacity, predSum, zapoln):
 
 
 def funcEMin(X):
+    """
+        This is a function
+    """
     res = 0
     for i in X:
         res += (i / len(X))
@@ -778,6 +935,9 @@ def funcEMin(X):
 
 
 def f1_1(sendCount, point):
+    """
+        This is a function
+    """
     res = 0
     spros = point['spros']
     if CheckSendCount(
@@ -792,6 +952,9 @@ def f1_1(sendCount, point):
 
 
 def f2_1(sendCount, point):
+    """
+        This is a function
+    """
     res = 0
     spros, listForvector, realSpros = point['spros'], point['listForvector'], point['realSpros']
     if CheckSendCount(
@@ -811,6 +974,9 @@ def f2_1(sendCount, point):
 
 
 def f2_2(send):
+    """
+        This is a function
+    """
     res = 0
     skladSumCount = 0
     predSum = 0
@@ -836,16 +1002,25 @@ def f2_2(send):
 
 
 def f2(send):
+    """
+        This is a function
+    """
     res = f2_2(send) + f2_1(send[1], send[2])
     return res
 
 
 def f1(send):
+    """
+        This is a function
+    """
     res = f1_1(send[1], send[2])
     return -res
 
 
 def main_prediction(full):
+    """
+        This is a function
+    """
     problem = Problem(
         num_of_variables=2, objectives=[
             f1, f2], variables_range=[
