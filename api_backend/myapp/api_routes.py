@@ -1,10 +1,11 @@
 """ Module that routes api requests """  # pylint: disable=too-many-lines
-import datetime
 import hashlib
 import pickle
 from functools import wraps
 
+import keras
 import keras.backend.tensorflow_backend as tb
+
 import requests
 from flask import request, abort
 from flask_restful import Resource
@@ -16,6 +17,10 @@ from myapp.consts import Consts
 from myapp.models import ProductType, Point, LSTM, Sale, User, Tag
 from myapp.utils import Utils
 
+# for python 3.6
+from datetime import date, datetime, time
+from backports.datetime_fromisoformat import MonkeyPatch
+MonkeyPatch.patch_fromisoformat()
 
 def json_type(product_type):
     """Function converts product_type object into dictionary
@@ -136,7 +141,9 @@ def create_lstm(query, user_token):
     '''.format(query['point_id'], query['product_type_id'], user_token)).fetchall()  # and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
     print(data)
     if len(data) >= 2:
-        tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+        if keras.__version__ != '2.2.5':
+            tb._SYMBOLIC_SCOPE.value = True
+
         model = LSTM.query.filter(LSTM.point_id == str(query['point_id']), LSTM.product_type_id == str(query['product_type_id']), LSTM.user_token == str(user_token)).first()  # +user_id
         if model is None:
             slen = int(ProductType.query.filter(ProductType.id == str(query['product_type_id'])).first().seasonality)  # ,ProductType.user_token == str(user_token)
@@ -256,7 +263,9 @@ def create_lstm_with_id(query, lstm_id, user_token):
     '''.format(query['point_id'], query[
         'product_type_id'],user_token)).fetchall()  # and product_item.product_type_id = {1} and sale.product_item_id = product_item.id
     if len(data) >= 2:
-        tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+        if keras.__version__ != '2.2.5':
+            tb._SYMBOLIC_SCOPE.value = True
+
         model = LSTM.query.filter(LSTM.point_id == str(query['point_id']), LSTM.product_type_id == str(query['product_type_id']), LSTM.user_token == str(user_token)).first()  # +user_id
         if model is None:
             slen = int(ProductType.query.filter(ProductType.id == str(query['product_type_id'])).first().seasonality)  # ,ProductType.user_token == str(user_token)
@@ -349,7 +358,7 @@ def create_sale(query, user_token):
         :return Sale: Sale object
     """
     return Sale(
-        date=datetime.datetime.fromisoformat(
+        date=datetime.fromisoformat(
             query['date']),
         product_type_id=query['product_type_id'],
         point_id=query['point_id'],
@@ -367,7 +376,7 @@ def create_sale_with_id(query, sale_id, user_token):
     """
     return Sale(
         id=sale_id,
-        date=datetime.datetime.fromisoformat(
+        date=datetime.fromisoformat(
             query['date']),
         product_type_id=query['product_type_id'],
         point_id=query['point_id'],
@@ -395,7 +404,9 @@ def make_prediction(query, user_token):
         :param TODO
         :return list[][]: predictions list
     """
-    tb._SYMBOLIC_SCOPE.value = True  # ! костыль
+    if keras.__version__ != '2.2.5':
+        tb._SYMBOLIC_SCOPE.value = True
+
     models = LSTM.query.filter(
         LSTM.product_type_id == query['product_type_id'],
         LSTM.user_token == user_token).all()  # пока всё
@@ -1261,7 +1272,7 @@ class IntegrateApi(Resource):
                 user.moysklad_login,
                 user.moysklad_password))
         for item in response.json()['rows']:
-            date = datetime.datetime.fromisoformat(item['moment'])
+            date = datetime.fromisoformat(item['moment'])
             point_id = item['store']['id']
             shops_list.add(point_id)
             for position in item['positions']['rows']:
@@ -1297,7 +1308,7 @@ class IntegrateApi(Resource):
             point_id = item['sourceStore']['meta']['href'].split('/')[-1]
             if point_id not in shops_list:
                 sale_id = item['id']
-                date = datetime.datetime.fromisoformat(item['moment'])
+                date = datetime.fromisoformat(item['moment'])
                 for position in item['positions']['rows']:
                     count = position['quantity']
                     product_type_id = position['assortment']['id']
