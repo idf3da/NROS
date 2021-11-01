@@ -91,7 +91,7 @@
 
 							<v-text-field class="mt-n4" v-model="search1" append-icon="mdi-magnify" label="Search" hide-details></v-text-field>
 						</v-card-title>
-						<v-data-table :loading="!product_items_loaded" :height="180" :headers="product_items_headers" :items="product_items" :search="search1">
+						<v-data-table  :height="180" :headers="product_items_headers" :items="product_items" :search="search1">
 							<template v-slot:item.actions="{ item }">
 								<v-row>
 									<v-icon color="cyan accent-1" @click="getPrediction(item)">
@@ -120,7 +120,7 @@
 					<v-card class="pa-0" outlined tile>
 						<v-card-title class="mt-n2 mb-1">Products parameters</v-card-title>
 						<v-divider></v-divider>
-						<v-data-table class="mt-n3" :height="400" :headers="store_headers" :items="store_data" :single-expand="singleExpand" :expanded.sync="expanded_table" shop-key="point_id" show-expand :search="table_search" :options.sync="table_pagination" :loading="!store_data_loaded">
+						<v-data-table class="mt-n3" :height="400" :headers="store_headers" :items="store_data" :single-expand="singleExpand" :expanded.sync="expanded_table" shop-key="point_id" show-expand :search="table_search" :options.sync="table_pagination" >
 							<template v-if="store_data_loaded" v-slot:expanded-item="{ item }">
 								<td :colspan="4">
 									<v-data-table hide-default-footer :height="250" :headers="property_product_headers" :items="item.product_types" :option.sync="sub_table_pagination" elevation-0>
@@ -282,29 +282,34 @@
 			};
 		},
 		created() {
-			axios
-				.get("product_types", {
-					Authorization: localStorage.getItem("token") || "",
-				})
-				.then((response) => {
-					this.product_items = response.data.product_types;
-					this.product_items_loaded = true;
-				});
-			axios
-				.post("user/integrate", {
-					Authorization: localStorage.getItem("token") || "",
-				})
-				.then((response) => {
-					this.store_data = response.data.result;
-					this.store_data_loaded = true;
-					for (let i = 0; i < this.store_data.length; i++) {
-						for (let j = 0; j < this.store_data[i].product_types.length; j++) {
-							this.store_data[i].product_types[j]["shop_index"] = i;
-						}
-						let coord = [this.store_data[i].latitude, this.store_data[i].longitude, this.store_data[i].address];
-						this.store_coordinates.push(coord);
-					}
-				});
+			// axios
+			// 	.get("product_types", {
+			// 		Authorization: localStorage.getItem("token") || "",
+			// 	})
+			// 	.then((response) => {
+			// 		this.product_items = response.data.product_types;
+			// 		this.product_items_loaded = true;
+			// 	});
+
+			this.product_items = [{"name": "Lays chips", "id":1, "price": "$1.5", "Popular season": "summer"}, {"name": "Poky", "id":2, "price": "$2", "Popular season": "winter"}, {"name": "Water", "id":1, "price": "$0.5", "Popular season": "summer"}]
+			this.store_data = [{"point_id": 1, "address": "Moscow", "longitude": 1, "latitude":1}, {"point_id": 2, "address": "Coventry", "longitude": 4, "latitude":3}, {"point_id": 3, "address": "Balshiha", "longitude": 12, "latitude":3}]
+
+
+			// axios
+			// 	.post("user/integrate", {
+			// 		Authorization: localStorage.getItem("token") || "",
+			// 	})
+			// 	.then((response) => {
+			// 		this.store_data = response.data.result;
+			// 		this.store_data_loaded = true;
+			// 		for (let i = 0; i < this.store_data.length; i++) {
+			// 			for (let j = 0; j < this.store_data[i].product_types.length; j++) {
+			// 				this.store_data[i].product_types[j]["shop_index"] = i;
+			// 			}
+			// 			let coord = [this.store_data[i].latitude, this.store_data[i].longitude, this.store_data[i].address];
+			// 			this.store_coordinates.push(coord);
+			// 		}
+			// 	});
 		},
 		computed: {
 			formTitle() {

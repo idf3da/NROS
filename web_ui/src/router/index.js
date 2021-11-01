@@ -10,7 +10,7 @@ Vue.use(VueRouter);
 // eslint-disable-next-line no-unused-vars
 // use it only for pages don't require authentication
 const ifNotAuthenticated = (to, from, next) => {
-    if (!store.getters.isAuthenticated) {
+    if (store.getters.isAuthenticated) {
         next();
         return
     }
@@ -20,7 +20,7 @@ const ifNotAuthenticated = (to, from, next) => {
 // eslint-disable-next-line no-unused-vars
 // use it only for pages that require authentication
 const ifAuthenticated = (to, from, next) => {
-    if (store.getters.isAuthenticated) {
+    if (!store.getters.isAuthenticated) {
         next();
         return
     }
