@@ -2,8 +2,12 @@
 Рекомендательная система управлением логистики и retail компаний с использованием технологий Машинного обучения. 
 Logistics and retail control recommendation system using machine learning technology
 
+### Landing
 ![no img :(](1.png)
+### Log in
 ![no img :(](2.png)
+### Map view
+![no img :(](3.png)
 
 # Участники команды ( members )
 
