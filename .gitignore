@@ -6,3 +6,4 @@
 /migrations/
 api_backend/.vscode/launch.json
 api_backend/.vscode/settings.json
+node_modules
