@@ -14,6 +14,6 @@ Logistics and retail control recommendation system using machine learning techno
 - Субботин Артем
 - Ярослав Звонков
 
-This project avaliable on [GH pages](https://idf3da.github.io/NROS/dashboard).
+This project avaliable on [GH pages](https://idf3da.github.io/NROS/).
 
 : |
