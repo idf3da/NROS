@@ -2,6 +2,9 @@
 Рекомендательная система управлением логистики и retail компаний с использованием технологий Машинного обучения. 
 Logistics and retail control recommendation system using machine learning technology
 
+![no img :(](1.png)
+![no img :(](2.png)
+
 # Участники команды ( members )
 
 - [Илья Шабанов](https://github.com/shabashaash)
