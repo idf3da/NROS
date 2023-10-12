@@ -1,6 +1,6 @@
 # NROS
-Рекомендательная система управлением логистики и retail компаний с использованием технологий Машинного обучения. 
-Logistics and retail control recommendation system using machine learning technology
+### [RU] Рекомендательная система управлением логистики и retail компаний с использованием технологий Машинного обучения. 
+### [EN] Logistics and retail control recommendation system using machine learning technology
 
 ### Landing
 ![no img :(](1.png)
